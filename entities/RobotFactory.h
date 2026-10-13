@@ -1,5 +1,5 @@
 #pragma once
-#include "Point.h"
+#include "../core/Point.h"
 
 class RobotFactory {
 public:

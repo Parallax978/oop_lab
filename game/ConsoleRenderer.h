@@ -1,6 +1,6 @@
 #pragma once
-#include "Field.h"
-#include "Robot.h"
+#include "../core/Field.h"
+#include "../entities/Robot.h"
 
 class ConsoleRenderer {
 public:

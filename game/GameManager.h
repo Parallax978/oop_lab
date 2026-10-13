@@ -1,7 +1,7 @@
 #pragma once
 #include <memory>
-#include "Field.h"
-#include "Robot.h"
+#include "../core/Field.h"
+#include "../entities/Robot.h"
 #include "ConsoleRenderer.h"
 
 enum class GameState {

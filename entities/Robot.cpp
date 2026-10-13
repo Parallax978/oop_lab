@@ -1,4 +1,4 @@
-#include "Robot.h"
+#include "../Robot.h"
 #include <algorithm>
 
 Robot::Robot(bool isPlayer, int maxHp, int attack, int maxEnergy, int speed, int viewRadius)

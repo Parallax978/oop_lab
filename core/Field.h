@@ -4,8 +4,8 @@
 #include <optional>
 #include "Point.h"
 #include "Cell.h"
-#include "Robot.h"
-#include "RobotFactory.h"
+#include "../entities/Robot.h"
+#include "../RobotFactory.h"
 
 class Field {
 public:

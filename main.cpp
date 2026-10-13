@@ -1,9 +1,9 @@
 #include <iostream>
 #include <memory>
-#include "Field.h"
-#include "Robot.h"
+#include "core/Field.h"
+#include "entities/Robot.h"
 #include "RobotFactory.h"
-#include "GameManager.h"
+#include "game/GameManager.h"
 
 int main() {
     try {

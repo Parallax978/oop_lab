@@ -1,4 +1,4 @@
-#include "Cell.h"
+#include "../Cell.h"
 #include <algorithm>
 
 Cell::Cell(bool isWalkable, int moveCost)

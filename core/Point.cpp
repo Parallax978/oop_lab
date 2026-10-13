@@ -1,4 +1,4 @@
-#include "point.h"
+#include "../point.h"
 #include <algorithm>
 #include <cmath>
 
