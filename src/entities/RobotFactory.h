@@ -1,18 +1,17 @@
 #pragma once
-#include "../core/Point.h"
+#include "Point.h"
 
 class RobotFactory {
 public:
-    RobotFactory(Point topLeft, int spawnInterval);
+    RobotFactory(const Point& topLeft, int spawnInterval);
 
-    Point getTopLeft() const;
-    int getSpawnInterval() const;
-    int getTurnsUntilSpawn() const;
+    Point getTopLeft() const { return topLeft_; };
+    int getSpawnInterval() const { return spawnInterval_; };
+    int getTurnsUntilSpawn() const { return turnsUntilSpawn_; };
 
-    // Занимает ли завод данную точку (проверка площади 2х2)
-    bool occupies(Point pt) const;
 
-    // Уменьшает счетчик ходов. Возвращает true, если на этом ходу нужно создать робота
+    bool occupies(const Point& pt) const;
+
     bool tick();
 
     void resetTimer();
