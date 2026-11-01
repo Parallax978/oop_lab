@@ -4,8 +4,8 @@
 #include <optional>
 #include "Point.h"
 #include "Cell.h"
-#include "../entities/Robot.h"
-#include "../RobotFactory.h"
+#include "Robot.h"
+#include "RobotFactory.h"
 
 class Field {
 public:
@@ -20,24 +20,31 @@ public:
     bool isInside(Point pt) const;
 
     const Cell& getCell(Point pt) const;
-    Cell& getCell(Point pt);
+
     bool isWalkable(Point pt) const;
 
-    bool addRobot(std::unique_ptr<Robot> robot, Point pt);
-    bool addFactory(std::unique_ptr<RobotFactory> factory);
-
     Robot* getRobotAt(Point pt) const;
+
     std::optional<Point> getRobotPosition(const Robot* robot) const;
+
     RobotFactory* getFactoryAt(Point pt) const;
+
+    const std::vector<std::pair<Point, std::unique_ptr<Robot>>>& getRobots() const;
+
+    const std::vector<std::unique_ptr<RobotFactory>>& getFactories() const;
+
+
+    Cell& getCell(Point pt);
+
+    bool addRobot(std::unique_ptr<Robot> robot, Point pt);
+
+    bool addFactory(std::unique_ptr<RobotFactory> factory);
 
     bool moveRobot(Robot* robot, Point destination);
 
     void cleanupDeadRobots();
-    
-    void updateFogOfWar(Point playerPos, int viewRadius);
 
-    const std::vector<std::pair<Point, std::unique_ptr<Robot>>>& getRobots() const;
-    const std::vector<std::unique_ptr<RobotFactory>>& getFactories() const;
+    void updateFogOfWar(Point playerPos, int viewRadius);
 
 private:
     int width_;

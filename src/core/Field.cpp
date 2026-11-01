@@ -1,4 +1,4 @@
-#include "../Field.h"
+#include "Field.h"
 #include <stdexcept>
 
 Field::Field(int width, int height) : width_(width), height_(height) {
@@ -15,12 +15,7 @@ bool Field::isInside(Point pt) const {
     return pt.x >= 0 && pt.x < width_ && pt.y >= 0 && pt.y < height_;
 }
 
-const Cell& Field::getCell(Point pt) const {
-    if (!isInside(pt)) throw std::out_of_range("Coordinates out of field bounds");
-    return grid_[pt.y][pt.x];
-}
-
-Cell& Field::getCell(Point pt) {
+const Cell& Field::getCell(const Point pt) const {
     if (!isInside(pt)) throw std::out_of_range("Coordinates out of field bounds");
     return grid_[pt.y][pt.x];
 }
@@ -28,34 +23,7 @@ Cell& Field::getCell(Point pt) {
 bool Field::isWalkable(Point pt) const {
     if (!isInside(pt)) return false;
     if (!grid_[pt.y][pt.x].isWalkable()) return false;
-    if (getFactoryAt(pt) != nullptr) return false; // Завод 2х2 непроходим
-    return true;
-}
-
-bool Field::addRobot(std::unique_ptr<Robot> robot, Point pt) {
-    if (!isWalkable(pt) || getRobotAt(pt) != nullptr) {
-        return false;
-    }
-    robots_.emplace_back(pt, std::move(robot));
-    return true;
-}
-
-bool Field::addFactory(std::unique_ptr<RobotFactory> factory) {
-    Point tl = factory->getTopLeft();
-    // Проверяем, помещается ли 2х2 в поле
-    if (!isInside(tl) || !isInside({tl.x + 1, tl.y + 1})) {
-        return false;
-    }
-    // Проверяем, не заняты ли уже эти клетки
-    for (int dy = 0; dy < 2; ++dy) {
-        for (int dx = 0; dx < 2; ++dx) {
-            Point p{tl.x + dx, tl.y + dy};
-            if (!grid_[p.y][p.x].isWalkable() || getRobotAt(p) != nullptr || getFactoryAt(p) != nullptr) {
-                return false;
-            }
-        }
-    }
-    factories_.push_back(std::move(factory));
+    if (getFactoryAt(pt) != nullptr) return false;
     return true;
 }
 
@@ -77,13 +45,52 @@ std::optional<Point> Field::getRobotPosition(const Robot* robot) const {
     return std::nullopt;
 }
 
-RobotFactory* Field::getFactoryAt(Point pt) const {
+RobotFactory* Field::getFactoryAt(const Point pt) const {
     for (const auto& factory : factories_) {
         if (factory->occupies(pt)) {
             return factory.get();
         }
     }
     return nullptr;
+}
+
+const std::vector<std::pair<Point, std::unique_ptr<Robot>>>& Field::getRobots() const {
+    return robots_;
+}
+
+const std::vector<std::unique_ptr<RobotFactory>>& Field::getFactories() const {
+    return factories_;
+}
+
+
+Cell& Field::getCell(Point pt) {
+    if (!isInside(pt)) throw std::out_of_range("Coordinates out of field bounds");
+    return grid_[pt.y][pt.x];
+}
+
+bool Field::addRobot(std::unique_ptr<Robot> robot, Point pt) {
+    if (!isWalkable(pt) || getRobotAt(pt) != nullptr) {
+        return false;
+    }
+    robots_.emplace_back(pt, std::move(robot));
+    return true;
+}
+
+bool Field::addFactory(std::unique_ptr<RobotFactory> factory) {
+    Point tl = factory->getTopLeft();
+    if (!isInside(tl) || !isInside({tl.x + 1, tl.y + 1})) {
+        return false;
+    }
+    for (int dy = 0; dy < 2; ++dy) {
+        for (int dx = 0; dx < 2; ++dx) {
+            Point p{tl.x + dx, tl.y + dy};
+            if (!isWalkable(p) || getRobotAt(p) != nullptr) {
+                return false;
+            }
+        }
+    }
+    factories_.push_back(std::move(factory));
+    return true;
 }
 
 bool Field::moveRobot(Robot* robot, Point destination) {
@@ -93,21 +100,17 @@ bool Field::moveRobot(Robot* robot, Point destination) {
 
     auto currentPosOpt = getRobotPosition(robot);
     if (!currentPosOpt.has_value()) return false;
-    Point currentPos = currentPosOpt.value();
 
-    // Нельзя наступать на непроходимую клетку (стены, заводы)
     if (!isWalkable(destination)) {
         return false;
     }
 
     Robot* target = getRobotAt(destination);
     if (target != nullptr) {
-        // Клетка занята другим роботом -> взаимодействие
         robot->interact(*target);
         return true;
     }
 
-    // Клетка свободна -> перемещаем
     for (auto& [pos, r] : robots_) {
         if (r.get() == robot) {
             pos = destination;
@@ -132,12 +135,4 @@ void Field::updateFogOfWar(Point playerPos, int viewRadius) {
             }
         }
     }
-}
-
-const std::vector<std::pair<Point, std::unique_ptr<Robot>>>& Field::getRobots() const {
-    return robots_;
-}
-
-const std::vector<std::unique_ptr<RobotFactory>>& Field::getFactories() const {
-    return factories_;
 }
