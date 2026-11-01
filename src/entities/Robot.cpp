@@ -45,8 +45,9 @@ void Robot::addExp(int amount) {
     }
 }
 
-void Robot::interact(Robot& target) {
-    if (!isAlive() || !target.isAlive()) return;
+bool Robot::interact(Robot& target) {
+    if (this == &target || !isAlive() || !target.isAlive()) return false;
+    if (!consumeEnergy(InteractionEnergyCost)) return false;
 
     if (isPlayer_ != target.isPlayer()) {
         target.takeDamage(attack_);
@@ -56,6 +57,7 @@ void Robot::interact(Robot& target) {
     } else {
         target.heal(15 + rank_ * 5);
     }
+    return true;
 }
 
 void Robot::levelUp() {

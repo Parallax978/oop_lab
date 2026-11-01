@@ -30,7 +30,7 @@ int main() {
         game.run();
 
     } catch (const std::exception& ex) {
-        std::cerr << "Критическая ошибка: " << ex.what() << '\n';
+        std::cerr << "Critical error: " << ex.what() << '\n';
         return 1;
     }
 

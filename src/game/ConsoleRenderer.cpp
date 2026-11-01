@@ -1,18 +1,36 @@
-#include "../ConsoleRenderer.h"
+#include "ConsoleRenderer.h"
 #include <iostream>
 #include <string>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+
+namespace {
+void clearConsole() {
+    const HANDLE output = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO info;
+    if (!GetConsoleScreenBufferInfo(output, &info)) return;
+
+    const COORD origin{0, 0};
+    const DWORD size = static_cast<DWORD>(info.dwSize.X) * info.dwSize.Y;
+    DWORD written;
+    FillConsoleOutputCharacterA(output, ' ', size, origin, &written);
+    FillConsoleOutputAttribute(output, info.wAttributes, size, origin, &written);
+    SetConsoleCursorPosition(output, origin);
+}
+}
 
 void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNumber) const {
     auto playerPosOpt = field.getRobotPosition(&player);
-    Point playerPos = playerPosOpt.value_or(Point{-1, -1});
 
     std::string buffer;
     buffer += "\n========================================\n";
-    buffer += "Ход: " + std::to_string(turnNumber) + "\n";
+    buffer += "Turn: " + std::to_string(turnNumber) + "\n";
     buffer += "HP: " + std::to_string(player.getHp()) + "/" + std::to_string(player.getMaxHp()) +
-              " | Энергия: " + std::to_string(player.getEnergy()) + "/" + std::to_string(player.getMaxEnergy()) +
-              " | Ранг: " + std::to_string(player.getRank()) +
-              " | Опыт: " + std::to_string(player.getExp()) + "/" + std::to_string(player.getExpToNextRank()) + "\n";
+              " | Energy: " + std::to_string(player.getEnergy()) + "/" + std::to_string(player.getMaxEnergy()) +
+              " | Rank: " + std::to_string(player.getRank()) +
+              " | XP: " + std::to_string(player.getExp()) + "/" + std::to_string(player.getExpToNextRank()) + "\n";
     buffer += "========================================\n";
 
     for (int y = 0; y < field.getHeight(); ++y) {
@@ -20,7 +38,8 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
             Point pt{x, y};
             const Cell& cell = field.getCell(pt);
 
-            bool isCurrentlyVisible = (playerPosOpt.has_value() && player.canSee(pt));
+            bool isCurrentlyVisible = (playerPosOpt.has_value() &&
+                           playerPosOpt.value().distance(pt) <= player.getViewRadius());
 
             if (!isCurrentlyVisible && !cell.isDiscovered()) {
                 buffer += " ? ";
@@ -47,5 +66,6 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
         buffer += "\n";
     }
 
-    std::cout << buffer;
+    clearConsole();
+    std::cout << buffer << std::flush;
 }

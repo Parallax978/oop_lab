@@ -1,4 +1,5 @@
 #include "Field.h"
+#include <cstdlib>
 #include <stdexcept>
 
 Field::Field(int width, int height) : width_(width), height_(height) {
@@ -101,18 +102,25 @@ bool Field::moveRobot(Robot* robot, Point destination) {
     auto currentPosOpt = getRobotPosition(robot);
     if (!currentPosOpt.has_value()) return false;
 
+    const Point current = currentPosOpt.value();
+    if (std::abs(destination.x - current.x) + std::abs(destination.y - current.y) != 1) {
+        return false;
+    }
+
     if (!isWalkable(destination)) {
         return false;
     }
 
     Robot* target = getRobotAt(destination);
     if (target != nullptr) {
-        robot->interact(*target);
-        return true;
+        return robot->interact(*target);
     }
 
     for (auto& [pos, r] : robots_) {
         if (r.get() == robot) {
+            const int terrainCost = getCell(destination).getMoveCost();
+            if (terrainCost > robot->getEnergy() / Robot::MoveEnergyCost) return false;
+            if (!robot->consumeEnergy(terrainCost * Robot::MoveEnergyCost)) return false;
             pos = destination;
             return true;
         }

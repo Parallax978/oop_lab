@@ -2,6 +2,8 @@
 
 class Robot {
 public:
+    static constexpr int MoveEnergyCost = 15;
+    static constexpr int InteractionEnergyCost = 20;
     explicit Robot(bool isPlayer, int maxHp = 100, int attack = 20, int maxEnergy = 50, int speed = 3, int viewRadius = 4);
 
 
@@ -32,7 +34,7 @@ public:
 
     void addExp(int amount);
 
-    void interact(Robot& target);
+    bool interact(Robot& target);
 
 private:
     void levelUp();

@@ -1,6 +1,27 @@
 #include "GameManager.h"
 #include <iostream>
-#include <conio.h>
+#include <stdexcept>
+#ifndef NOMINMAX
+#define NOMINMAX
+#endif
+#include <windows.h>
+
+namespace {
+WORD readKey() {
+    const HANDLE input = GetStdHandle(STD_INPUT_HANDLE);
+    INPUT_RECORD event;
+    DWORD count;
+    while (ReadConsoleInputW(input, &event, 1, &count)) {
+        if (count == 0 || event.EventType != KEY_EVENT) continue;
+        const auto& key = event.Event.KeyEvent;
+        if (!key.bKeyDown) continue;
+        if (key.wVirtualKeyCode == VK_SHIFT || key.wVirtualKeyCode == VK_CONTROL ||
+            key.wVirtualKeyCode == VK_MENU || key.wVirtualKeyCode == VK_CAPITAL) continue;
+        return key.wVirtualKeyCode;
+    }
+    throw std::runtime_error("Cannot read keyboard input. Run the game in a Windows console.");
+}
+}
 
 GameManager::GameManager(std::unique_ptr<Field> field, Robot* player)
     : field_(std::move(field)), player_(player) {}
@@ -45,17 +66,13 @@ void GameManager::processPlayerTurn() {
 
     std::cout << "\nYour turn (W/A/S/D - move/attack, any other key - skip turn): ";
     std::cout << std::flush;
-    int input = _getch();
-    if (input == 0 || input == 224) {
-        _getch();
-        return;
-    }
+    const WORD input = readKey();
 
     Point targetPos = curPos;
-    if (input == 'w' || input == 'W') targetPos.y--;
-    else if (input == 's' || input == 'S') targetPos.y++;
-    else if (input == 'a' || input == 'A') targetPos.x--;
-    else if (input == 'd' || input == 'D') targetPos.x++;
+    if (input == 'W') targetPos.y--;
+    else if (input == 'S') targetPos.y++;
+    else if (input == 'A') targetPos.x--;
+    else if (input == 'D') targetPos.x++;
     else return;
 
     if (field_->isInside(targetPos)) {
