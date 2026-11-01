@@ -1,6 +1,6 @@
-#include "../GameManager.h"
+#include "GameManager.h"
 #include <iostream>
-#include <cmath>
+#include <conio.h>
 
 GameManager::GameManager(std::unique_ptr<Field> field, Robot* player)
     : field_(std::move(field)), player_(player) {}
@@ -17,32 +17,24 @@ void GameManager::run() {
             break;
         }
 
-        // Обновляем туман войны перед отображением
         field_->updateFogOfWar(playerPosOpt.value(), player_->getViewRadius());
 
-        // Отрисовываем кадр
         renderer_.render(*field_, *player_, turnNumber_);
 
-        // 1. Ход игрока
         processPlayerTurn();
 
-        // 2. Ход врагов
         processEnemiesTurn();
 
-        // 3. Работа заводов
         processFactories();
 
-        // 4. Окончание хода (регенерация энергии, очистка, проверка победы)
         endTurn();
     }
 
-    // Финальный экран
-    auto finalPos = field_->getRobotPosition(player_).value_or(Point{0, 0});
     renderer_.render(*field_, *player_, turnNumber_);
     if (state_ == GameState::PlayerWon) {
-        std::cout << "\n>>> ПОБЕДА! Все вражеские роботы уничтожены! <<<\n";
+        std::cout << "\n>>> VICTORY! All enemy robots have been destroyed! <<<\n";
     } else {
-        std::cout << "\n>>> ПОРАЖЕНИЕ! Робот игрока уничтожен! <<<\n";
+        std::cout << "\n>>> DEFEAT! Your robot has been destroyed! <<<\n";
     }
 }
 
@@ -51,18 +43,21 @@ void GameManager::processPlayerTurn() {
     if (!posOpt.has_value()) return;
     Point curPos = posOpt.value();
 
-    std::cout << "\nВаш ход (W/A/S/D — движение/атака, Пропуск хода — любая другая клавиша): ";
-    char input;
-    if (!(std::cin >> input)) return;
+    std::cout << "\nYour turn (W/A/S/D - move/attack, any other key - skip turn): ";
+    std::cout << std::flush;
+    int input = _getch();
+    if (input == 0 || input == 224) {
+        _getch();
+        return;
+    }
 
     Point targetPos = curPos;
     if (input == 'w' || input == 'W') targetPos.y--;
     else if (input == 's' || input == 'S') targetPos.y++;
     else if (input == 'a' || input == 'A') targetPos.x--;
     else if (input == 'd' || input == 'D') targetPos.x++;
-    else return; // Пропуск хода
+    else return;
 
-    // Учитываем проходимость и затраты на шаг
     if (field_->isInside(targetPos)) {
         field_->moveRobot(player_, targetPos);
     }
@@ -78,7 +73,6 @@ void GameManager::processEnemiesTurn() {
             Point enemyPos = pos;
             Point step = enemyPos;
 
-            // Простейший поиск пути в сторону игрока
             if (playerPos.x > enemyPos.x) step.x++;
             else if (playerPos.x < enemyPos.x) step.x--;
             else if (playerPos.y > enemyPos.y) step.y++;
@@ -92,11 +86,9 @@ void GameManager::processEnemiesTurn() {
 void GameManager::processFactories() {
     for (const auto& factory : field_->getFactories()) {
         if (factory->tick()) {
-            // Завод создает нового врага рядом с собой на свободной клетке
             Point tl = factory->getTopLeft();
             bool spawned = false;
 
-            // Ищем первую свободную клетку вокруг завода 2х2
             for (int dy = -1; dy <= 2 && !spawned; ++dy) {
                 for (int dx = -1; dx <= 2 && !spawned; ++dx) {
                     Point spawnPt{tl.x + dx, tl.y + dy};
@@ -112,23 +104,19 @@ void GameManager::processFactories() {
 }
 
 void GameManager::endTurn() {
-    // В конце хода каждый робот восстанавливает часть энергии (требование ТЗ)
     for (const auto& [pos, robot] : field_->getRobots()) {
         if (robot->isAlive()) {
             robot->restoreEnergy(10);
         }
     }
 
-    // Удаление уничтоженных роботов из вектора
-    field_->cleanupDeadRobots();
-
-    // Проверка условий завершения игры
     if (!player_->isAlive()) {
         state_ = GameState::PlayerLost;
         return;
     }
 
-    // Подсчет оставшихся врагов
+    field_->cleanupDeadRobots();
+
     int aliveEnemies = 0;
     for (const auto& [pos, robot] : field_->getRobots()) {
         if (!robot->isPlayer() && robot->isAlive()) {
@@ -136,8 +124,7 @@ void GameManager::endTurn() {
         }
     }
 
-    // Победа засчитывается, если врагов нет и заводы отсутствуют/выключены
-    if (aliveEnemies == 0 && field_->getFactories().empty()) {
+    if (aliveEnemies == 0) {
         state_ = GameState::PlayerWon;
     }
 
