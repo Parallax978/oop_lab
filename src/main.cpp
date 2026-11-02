@@ -20,6 +20,10 @@ int main() {
         field->getCell(Point{3, 2}).setWalkable(false);
         field->getCell(Point{3, 3}).setWalkable(false);
 
+        field->getCell(Point{0, 3}).setMoveCost(2);
+        field->getCell(Point{1, 3}).setMoveCost(2);
+        field->getCell(Point{2, 3}).setMoveCost(2);
+
         GameManager game(std::move(field), playerPtr);
         game.run();
 
