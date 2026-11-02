@@ -3,6 +3,7 @@
 class Robot {
 public:
     static constexpr int MoveEnergyCost = 15;
+    static constexpr int EnemyMoveEnergyCost = 20;
     static constexpr int InteractionEnergyCost = 20;
     explicit Robot(bool isPlayer, int maxHp = 100, int attack = 20, int maxEnergy = 50, int speed = 3, int viewRadius = 4);
 
@@ -23,6 +24,7 @@ public:
     int getExpToNextRank() const { return expToNextRank_; };
 
     int getSpeed() const { return speed_; };
+    int getMoveEnergyCost() const { return isPlayer_ ? MoveEnergyCost : EnemyMoveEnergyCost; }
     int getViewRadius() const { return viewRadius_; };
 
 

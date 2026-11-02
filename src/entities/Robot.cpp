@@ -47,6 +47,7 @@ void Robot::addExp(int amount) {
 
 bool Robot::interact(Robot& target) {
     if (this == &target || !isAlive() || !target.isAlive()) return false;
+    if (!isPlayer_ && !target.isPlayer()) return false;
     if (!consumeEnergy(InteractionEnergyCost)) return false;
 
     if (isPlayer_ != target.isPlayer()) {

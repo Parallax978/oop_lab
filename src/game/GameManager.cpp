@@ -51,11 +51,18 @@ void GameManager::run() {
         endTurn();
     }
 
+    if (auto position = field_->getRobotPosition(player_); position.has_value()) {
+        field_->updateFogOfWar(position.value(), player_->getViewRadius());
+    }
     renderer_.render(*field_, *player_, turnNumber_);
     if (state_ == GameState::PlayerWon) {
         std::cout << "\n>>> VICTORY! All enemy robots have been destroyed! <<<\n";
     } else {
         std::cout << "\n>>> DEFEAT! Your robot has been destroyed! <<<\n";
+    }
+    std::cout << "\nPress Enter to exit..." << std::flush;
+    FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE));
+    while (readKey() != VK_RETURN) {
     }
 }
 
@@ -110,7 +117,7 @@ void GameManager::processFactories() {
                 for (int dx = -1; dx <= 2 && !spawned; ++dx) {
                     Point spawnPt{tl.x + dx, tl.y + dy};
                     if (field_->isWalkable(spawnPt) && field_->getRobotAt(spawnPt) == nullptr) {
-                        auto enemy = std::make_unique<Robot>(false, 60, 15, 30, 2, 3);
+                        auto enemy = std::make_unique<Robot>(false, 70, 15, 30, 2, 3);
                         field_->addRobot(std::move(enemy), spawnPt);
                         spawned = true;
                     }

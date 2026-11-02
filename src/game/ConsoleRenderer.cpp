@@ -46,11 +46,9 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
                 continue;
             }
 
-            if (isCurrentlyVisible) {
-                if (const Robot* robot = field.getRobotAt(pt)) {
-                    buffer += robot->isPlayer() ? " P " : " E ";
-                    continue;
-                }
+            if (const Robot* robot = field.getRobotAt(pt)) {
+                buffer += robot->isPlayer() ? " P " : " E ";
+                continue;
             }
 
             if (field.getFactoryAt(pt) != nullptr) {

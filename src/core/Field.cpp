@@ -119,8 +119,9 @@ bool Field::moveRobot(Robot* robot, Point destination) {
     for (auto& [pos, r] : robots_) {
         if (r.get() == robot) {
             const int terrainCost = getCell(destination).getMoveCost();
-            if (terrainCost > robot->getEnergy() / Robot::MoveEnergyCost) return false;
-            if (!robot->consumeEnergy(terrainCost * Robot::MoveEnergyCost)) return false;
+            const int moveCost = robot->getMoveEnergyCost();
+            if (terrainCost > robot->getEnergy() / moveCost) return false;
+            if (!robot->consumeEnergy(terrainCost * moveCost)) return false;
             pos = destination;
             return true;
         }
