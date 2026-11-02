@@ -17,7 +17,15 @@ WORD readKey() {
         if (!key.bKeyDown) continue;
         if (key.wVirtualKeyCode == VK_SHIFT || key.wVirtualKeyCode == VK_CONTROL ||
             key.wVirtualKeyCode == VK_MENU || key.wVirtualKeyCode == VK_CAPITAL) continue;
-        return key.wVirtualKeyCode;
+        // Some terminals provide a Unicode character without a virtual key code.
+        switch (key.uChar.UnicodeChar) {
+        case L'w': case L'W': case L'\u0446': case L'\u0426': return 'W';
+        case L'a': case L'A': case L'\u0444': case L'\u0424': return 'A';
+        case L's': case L'S': case L'\u044b': case L'\u042b': return 'S';
+        case L'd': case L'D': case L'\u0432': case L'\u0412': return 'D';
+        case L'\r': case L'\n': return VK_RETURN;
+        default: return key.wVirtualKeyCode;
+        }
     }
     throw std::runtime_error("Cannot read keyboard input. Run the game in a Windows console.");
 }
