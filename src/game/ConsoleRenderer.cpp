@@ -1,6 +1,8 @@
 #include "ConsoleRenderer.h"
 #include <iostream>
 #include <string>
+#include <utility>
+#include <vector>
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -26,6 +28,7 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
     auto playerPosOpt = field.getRobotPosition(&player);
 
     std::string buffer;
+    std::vector<std::pair<std::size_t, std::size_t>> fogRanges;
     buffer += "\n========================================\n";
     buffer += "Turn: " + std::to_string(turnNumber) + "\n";
     buffer += "HP: " + std::to_string(player.getHp()) + "/" + std::to_string(player.getMaxHp()) +
@@ -47,11 +50,14 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
                 continue;
             }
 
-            if (const Robot* robot = field.getRobotAt(pt)) {
-                buffer += robot->isPlayer() ? " P " : " E ";
-                continue;
+            if (isCurrentlyVisible) {
+                if (const Robot* robot = field.getRobotAt(pt)) {
+                    buffer += robot->isPlayer() ? " P " : " E ";
+                    continue;
+                }
             }
 
+            const std::size_t cellStart = buffer.size();
             if (field.getFactoryAt(pt) != nullptr) {
                 buffer += " F ";
             } else if (!cell.isWalkable()) {
@@ -60,6 +66,13 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
                 buffer += " ~ ";
             } else {
                 buffer += " . ";
+            }
+            if (!isCurrentlyVisible) {
+                if (!fogRanges.empty() && fogRanges.back().second == cellStart) {
+                    fogRanges.back().second = buffer.size();
+                } else {
+                    fogRanges.emplace_back(cellStart, buffer.size());
+                }
             }
         }
         buffer += "\n";
@@ -71,5 +84,25 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
     }
     if (!message.empty()) buffer += "\n" + message + "\n";
     clearConsole();
-    std::cout << buffer << std::flush;
+
+    const HANDLE output = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO info;
+    if (!GetConsoleScreenBufferInfo(output, &info)) {
+        std::cout << buffer << std::flush;
+        return;
+    }
+    const WORD normalColor = info.wAttributes;
+    const WORD fogColor = static_cast<WORD>((normalColor & ~0x000F) | FOREGROUND_INTENSITY);
+    std::size_t printed = 0;
+    for (const auto& [begin, end] : fogRanges) {
+        std::cout.write(buffer.data() + printed, begin - printed);
+        std::cout << std::flush;
+        SetConsoleTextAttribute(output, fogColor);
+        std::cout.write(buffer.data() + begin, end - begin);
+        std::cout << std::flush;
+        SetConsoleTextAttribute(output, normalColor);
+        printed = end;
+    }
+    std::cout.write(buffer.data() + printed, buffer.size() - printed);
+    std::cout << std::flush;
 }
