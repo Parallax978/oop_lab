@@ -50,6 +50,8 @@ public:
 
     ActionResult moveRobot(Robot* robot, Point destination, bool canMove = true);
 
+    bool teleportRobot(Robot* robot, Point destination);
+
     void cleanupDeadRobots();
 
     void updateFogOfWar(Point playerPos, int viewRadius);

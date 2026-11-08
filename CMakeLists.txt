@@ -14,6 +14,8 @@ set(SOURCES
         src/main.cpp
         src/abilities/AreaAttack.cpp
         src/abilities/RangedAttack.cpp
+        src/abilities/Healing.cpp
+        src/abilities/Teleportation.cpp
         src/core/Point.cpp
         src/core/Cell.cpp
         src/core/Field.cpp

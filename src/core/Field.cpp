@@ -133,6 +133,20 @@ ActionResult Field::moveRobot(Robot* robot, Point destination, bool canMove) {
     return ActionResult::Blocked;
 }
 
+bool Field::teleportRobot(Robot* robot, Point destination) {
+    if (!robot || !robot->isAlive() || !isWalkable(destination) || getRobotAt(destination)) {
+        return false;
+    }
+
+    for (auto& [position, currentRobot] : robots_) {
+        if (currentRobot.get() == robot) {
+            position = destination;
+            return true;
+        }
+    }
+    return false;
+}
+
 void Field::cleanupDeadRobots() {
     std::erase_if(robots_, [](const auto& pair) {
         return !pair.second->isAlive();
