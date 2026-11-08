@@ -1,8 +1,10 @@
 #pragma once
-#include "../core/Field.h"
-#include "../entities/Robot.h"
+#include <string>
+#include "Field.h"
+#include "Robot.h"
 
 class ConsoleRenderer {
 public:
-    void render(const Field& field, const Robot& player, int turnNumber) const;
+    void render(const Field& field, const Robot& player, int turnNumber,
+                int movesLeft = -1, int maxMoves = 0, const std::string& message = "") const;
 };

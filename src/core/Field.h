@@ -7,6 +7,14 @@
 #include "Robot.h"
 #include "RobotFactory.h"
 
+enum class ActionResult {
+    Moved,
+    Interacted,
+    Blocked,
+    NoEnergy,
+    NoMoves
+};
+
 class Field {
 public:
     static constexpr int MIN_SIZE = 5;
@@ -40,7 +48,7 @@ public:
 
     bool addFactory(std::unique_ptr<RobotFactory> factory);
 
-    bool moveRobot(Robot* robot, Point destination);
+    ActionResult moveRobot(Robot* robot, Point destination, bool canMove = true);
 
     void cleanupDeadRobots();
 

@@ -21,7 +21,8 @@ void clearConsole() {
 }
 }
 
-void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNumber) const {
+void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNumber,
+                             int movesLeft, int maxMoves, const std::string& message) const {
     auto playerPosOpt = field.getRobotPosition(&player);
 
     std::string buffer;
@@ -64,6 +65,11 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
         buffer += "\n";
     }
 
+    if (movesLeft >= 0) {
+        buffer += "\nMoves left: " + std::to_string(movesLeft) + "/" + std::to_string(maxMoves);
+        buffer += "\nW/A/S/D - move/interact; Space - end turn\n";
+    }
+    if (!message.empty()) buffer += "\n" + message + "\n";
     clearConsole();
     std::cout << buffer << std::flush;
 }

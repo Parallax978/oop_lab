@@ -94,39 +94,43 @@ bool Field::addFactory(std::unique_ptr<RobotFactory> factory) {
     return true;
 }
 
-bool Field::moveRobot(Robot* robot, Point destination) {
+ActionResult Field::moveRobot(Robot* robot, Point destination, bool canMove) {
     if (!robot || !robot->isAlive() || !isInside(destination)) {
-        return false;
+        return ActionResult::Blocked;
     }
 
     auto currentPosOpt = getRobotPosition(robot);
-    if (!currentPosOpt.has_value()) return false;
+    if (!currentPosOpt.has_value()) return ActionResult::Blocked;
 
     const Point current = currentPosOpt.value();
     if (std::abs(destination.x - current.x) + std::abs(destination.y - current.y) != 1) {
-        return false;
+        return ActionResult::Blocked;
     }
 
     if (!isWalkable(destination)) {
-        return false;
+        return ActionResult::Blocked;
     }
 
     Robot* target = getRobotAt(destination);
     if (target != nullptr) {
-        return robot->interact(*target);
+        if (!robot->isPlayer() && !target->isPlayer()) return ActionResult::Blocked;
+        if (robot->getEnergy() < Robot::InteractionEnergyCost) return ActionResult::NoEnergy;
+        return robot->interact(*target) ? ActionResult::Interacted : ActionResult::Blocked;
     }
+
+    if (!canMove) return ActionResult::NoMoves;
 
     for (auto& [pos, r] : robots_) {
         if (r.get() == robot) {
             const int terrainCost = getCell(destination).getMoveCost();
             const int moveCost = robot->getMoveEnergyCost();
-            if (terrainCost > robot->getEnergy() / moveCost) return false;
-            if (!robot->consumeEnergy(terrainCost * moveCost)) return false;
+            if (terrainCost > robot->getEnergy() / moveCost) return ActionResult::NoEnergy;
+            if (!robot->consumeEnergy(terrainCost * moveCost)) return ActionResult::NoEnergy;
             pos = destination;
-            return true;
+            return ActionResult::Moved;
         }
     }
-    return false;
+    return ActionResult::Blocked;
 }
 
 void Field::cleanupDeadRobots() {
