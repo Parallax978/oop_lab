@@ -5,6 +5,7 @@
 #include "RobotFactory.h"
 #include "GameManager.h"
 #include "AreaAttack.h"
+#include "RangedAttack.h"
 
 int main() {
     try {
@@ -12,6 +13,7 @@ int main() {
 
         auto playerUnique = std::make_unique<Robot>(true, 100, 25, 60, 3, 4);
         playerUnique->addAbility(std::make_unique<AreaAttack>());
+        playerUnique->addAbility(std::make_unique<RangedAttack>());
         Robot* playerPtr = playerUnique.get();
         field->addRobot(std::move(playerUnique), Point{1, 1});
 

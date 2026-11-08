@@ -12,6 +12,8 @@ public:
 
     virtual std::string_view getName() const = 0;
     virtual int getEnergyCost() const = 0;
+    virtual bool requiresTarget() const = 0;
+    virtual int getRange() const = 0;
 
     virtual bool use(Robot& user, Field& field, const Point& target) = 0;
 

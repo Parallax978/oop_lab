@@ -11,6 +11,14 @@ int AreaAttack::getEnergyCost() const {
     return EnergyCost;
 }
 
+int AreaAttack::getRange() const {
+    return radius_;
+}
+
+bool AreaAttack::requiresTarget() const {
+    return false;
+}
+
 bool AreaAttack::use(Robot& user, Field& field, const Point&) {
     if (!user.isAlive()) return false;
 

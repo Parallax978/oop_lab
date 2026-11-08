@@ -71,19 +71,11 @@ void GameManager::processPlayerTurn() {
         }
         auto position = field_->getRobotPosition(player_);
         if (!position.has_value()) return;
-        if (input == '1' || input == VK_NUMPAD1) {
-            const IAbility* ability = player_->getAbility(0);
-            if (!ability) {
-                message_ = "You don't have an ability in this slot";
-            } else if (player_->getEnergy() < ability->getEnergyCost()) {
-                message_ = "You don't have enough energy for this ability";
-            } else if (player_->useAbility(0, *field_, position.value())) {
-                message_ = std::string(ability->getName()) + " used";
-                checkGameState();
-                field_->cleanupDeadRobots();
-            } else {
-                message_ = "Cannot use this ability";
-            }
+        if ((input >= '1' && input <= '9') ||
+            (input >= VK_NUMPAD1 && input <= VK_NUMPAD9)) {
+            const std::size_t index = input >= VK_NUMPAD1
+                ? input - VK_NUMPAD1 : input - '1';
+            processPlayerAbility(index, movesLeft, maxMoves);
             continue;
         }
         Point target = position.value();
@@ -113,6 +105,64 @@ void GameManager::processPlayerTurn() {
         case ActionResult::NoMoves:
             message_ = "You have no moves left";
             break;
+        }
+    }
+}
+
+void GameManager::processPlayerAbility(std::size_t index, int movesLeft, int maxMoves) {
+    const IAbility* ability = player_->getAbility(index);
+    if (!ability) {
+        message_ = "You don't have an ability in this slot";
+        return;
+    }
+    if (player_->getEnergy() < ability->getEnergyCost()) {
+        message_ = "You don't have enough energy for this ability";
+        return;
+    }
+
+    const auto position = field_->getRobotPosition(player_);
+    if (!position) return;
+
+    Point target = position.value();
+    if (ability->requiresTarget()) {
+        const auto selected = selectAbilityTarget(target, *ability, movesLeft, maxMoves);
+        if (!selected) {
+            message_ = "Ability cancelled";
+            return;
+        }
+        target = selected.value();
+    }
+
+    if (!player_->useAbility(index, *field_, target)) {
+        message_ = "Cannot use this ability on the selected target";
+        return;
+    }
+    message_ = std::string(ability->getName()) + " used";
+    checkGameState();
+    field_->cleanupDeadRobots();
+}
+
+std::optional<Point> GameManager::selectAbilityTarget(
+    Point start, const IAbility& ability, int movesLeft, int maxMoves) {
+    Point target = start;
+    while (true) {
+        message_ = std::string(ability.getName()) + " - range: " +
+                   std::to_string(ability.getRange());
+        renderFrame(movesLeft, maxMoves, target);
+
+        const WORD input = readKey();
+        if (input == VK_ESCAPE) return std::nullopt;
+        if (input == VK_RETURN) return target;
+
+        Point next = target;
+        if (input == 'W') --next.y;
+        else if (input == 'S') ++next.y;
+        else if (input == 'A') --next.x;
+        else if (input == 'D') ++next.x;
+        else continue;
+
+        if (field_->isInside(next) && start.distance(next) <= ability.getRange()) {
+            target = next;
         }
     }
 }
@@ -198,18 +248,20 @@ void GameManager::checkGameState() {
     state_ = GameState::PlayerWon;
 }
 
-void GameManager::renderFrame(int movesLeft, int maxMoves) {
+void GameManager::renderFrame(int movesLeft, int maxMoves, std::optional<Point> selectedTarget) {
     if (auto position = field_->getRobotPosition(player_); position.has_value()) {
         field_->updateFogOfWar(position.value(), player_->getViewRadius());
     }
-    renderer_.render(*field_, *player_, turnNumber_, movesLeft, maxMoves, message_);
+    renderer_.render(*field_, *player_, turnNumber_, movesLeft, maxMoves, message_, selectedTarget);
 }
 
 bool GameManager::canPlayerAct(int movesLeft) const {
     const auto position = field_->getRobotPosition(player_);
     if (!position || !player_->isAlive()) return false;
-    const IAbility* ability = player_->getAbility(0);
-    if (ability && player_->getEnergy() >= ability->getEnergyCost()) return true;
+    for (std::size_t index = 0; index < player_->getAbilityCount() && index < 9; ++index) {
+        const IAbility* ability = player_->getAbility(index);
+        if (ability && player_->getEnergy() >= ability->getEnergyCost()) return true;
+    }
     constexpr Point directions[] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
     for (const Point direction : directions) {
         const Point target{position->x + direction.x, position->y + direction.y};

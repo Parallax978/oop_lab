@@ -24,11 +24,17 @@ void clearConsole() {
 }
 
 void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNumber,
-                             int movesLeft, int maxMoves, const std::string& message) const {
+                             int movesLeft, int maxMoves, const std::string& message,
+                             std::optional<Point> selectedTarget) const {
     auto playerPosOpt = field.getRobotPosition(&player);
 
     std::string buffer;
-    std::vector<std::pair<std::size_t, std::size_t>> fogRanges;
+    struct ColorRange {
+        std::size_t begin;
+        std::size_t end;
+        bool isTarget;
+    };
+    std::vector<ColorRange> colorRanges;
     buffer += "\n========================================\n";
     buffer += "Turn: " + std::to_string(turnNumber) + "\n";
     buffer += "HP: " + std::to_string(player.getHp()) + "/" + std::to_string(player.getMaxHp()) +
@@ -41,6 +47,10 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
         for (int x = 0; x < field.getWidth(); ++x) {
             Point pt{x, y};
             const Cell& cell = field.getCell(pt);
+            const bool isTarget = selectedTarget && selectedTarget.value() == pt;
+            if (isTarget) {
+                colorRanges.push_back({buffer.size(), buffer.size() + 3, true});
+            }
 
             bool isCurrentlyVisible = (playerPosOpt.has_value() &&
                            playerPosOpt.value().distance(pt) <= player.getViewRadius());
@@ -67,11 +77,12 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
             } else {
                 buffer += " . ";
             }
-            if (!isCurrentlyVisible) {
-                if (!fogRanges.empty() && fogRanges.back().second == cellStart) {
-                    fogRanges.back().second = buffer.size();
+            if (!isCurrentlyVisible && !isTarget) {
+                if (!colorRanges.empty() && !colorRanges.back().isTarget &&
+                    colorRanges.back().end == cellStart) {
+                    colorRanges.back().end = buffer.size();
                 } else {
-                    fogRanges.emplace_back(cellStart, buffer.size());
+                    colorRanges.push_back({cellStart, buffer.size(), false});
                 }
             }
         }
@@ -98,9 +109,13 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
 
     if (movesLeft >= 0) {
         buffer += "\nMoves left: " + std::to_string(movesLeft) + "/" + std::to_string(maxMoves);
-        buffer += "\nW/A/S/D - move/interact; Space - end turn\n";
-        if (player.getAbilityCount() > 0) {
-            buffer += "1 - use first ability\n";
+        if (selectedTarget) {
+            buffer += "\nW/A/S/D - select cell; Enter - confirm; Esc - cancel\n";
+        } else {
+            buffer += "\nW/A/S/D - move/interact; Space - end turn\n";
+            if (player.getAbilityCount() > 0) {
+                buffer += "1-9 - use ability by number\n";
+            }
         }
     }
     if (!message.empty()) buffer += "\n" + message + "\n";
@@ -114,11 +129,13 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
     }
     const WORD normalColor = info.wAttributes;
     const WORD fogColor = static_cast<WORD>((normalColor & ~0x000F) | FOREGROUND_INTENSITY);
+    const WORD targetColor = BACKGROUND_RED | FOREGROUND_RED | FOREGROUND_GREEN |
+                             FOREGROUND_BLUE | FOREGROUND_INTENSITY;
     std::size_t printed = 0;
-    for (const auto& [begin, end] : fogRanges) {
+    for (const auto& [begin, end, isTarget] : colorRanges) {
         std::cout.write(buffer.data() + printed, begin - printed);
         std::cout << std::flush;
-        SetConsoleTextAttribute(output, fogColor);
+        SetConsoleTextAttribute(output, isTarget ? targetColor : fogColor);
         std::cout.write(buffer.data() + begin, end - begin);
         std::cout << std::flush;
         SetConsoleTextAttribute(output, normalColor);

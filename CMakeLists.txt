@@ -13,6 +13,7 @@ endif()
 set(SOURCES
         src/main.cpp
         src/abilities/AreaAttack.cpp
+        src/abilities/RangedAttack.cpp
         src/core/Point.cpp
         src/core/Cell.cpp
         src/core/Field.cpp
