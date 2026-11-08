@@ -19,7 +19,7 @@ void Robot::takeDamage(int amount) {
 
 void Robot::heal(int amount) {
     if (amount <= 0 || !isAlive()) return;
-    hp_ = std::min(maxHp_, hp_ + amount);
+    hp_ = std::min(getMaxHp(), hp_ + amount);
 }
 
 bool Robot::consumeEnergy(int amount) {
@@ -33,7 +33,7 @@ bool Robot::consumeEnergy(int amount) {
 
 void Robot::restoreEnergy(int amount) {
     if (amount <= 0) return;
-    energy_ = std::min(maxEnergy_, energy_ + amount);
+    energy_ = std::min(getMaxEnergy(), energy_ + amount);
 }
 
 void Robot::addExp(int amount) {
@@ -51,7 +51,7 @@ bool Robot::interact(Robot& target) {
     if (!consumeEnergy(InteractionEnergyCost)) return false;
 
     if (isPlayer_ != target.isPlayer()) {
-        target.takeDamage(attack_);
+        target.takeDamage(getAttack());
         if (!target.isAlive()) {
             addExp(50 * target.getRank());
         }
@@ -63,10 +63,13 @@ bool Robot::interact(Robot& target) {
 
 void Robot::levelUp() {
     rank_++;
-    maxHp_ += 20;
-    hp_ = maxHp_;
-    attack_ += 5;
-    maxEnergy_ += 10;
-    energy_ = maxEnergy_;
+    const double scale = isPlayer_ ? AllyLevelScale : EnemyLevelScale;
+    maxHp_ *= scale;
+    attack_ *= scale;
+    maxEnergy_ *= scale;
+    speed_ *= scale;
+    viewRadius_ *= scale;
+    hp_ = getMaxHp();
+    energy_ = getMaxEnergy();
     expToNextRank_ = static_cast<int>(expToNextRank_ * 1.5);
 }
