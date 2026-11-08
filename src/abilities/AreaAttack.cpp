@@ -1,0 +1,37 @@
+#include "AreaAttack.h"
+
+#include "Field.h"
+#include "Robot.h"
+
+std::string_view AreaAttack::getName() const {
+    return "Area attack";
+}
+
+int AreaAttack::getEnergyCost() const {
+    return EnergyCost;
+}
+
+bool AreaAttack::use(Robot& user, Field& field, const Point&) {
+    if (!user.isAlive()) return false;
+
+    const auto position = field.getRobotPosition(&user);
+    if (!position.has_value()) return false;
+    if (!user.consumeEnergy(getEnergyCost())) return false;
+
+    int earnedExp = 0;
+    for (const auto& [point, robot] : field.getRobots()) {
+        if (robot.get() == &user || !robot->isAlive()) continue;
+        if (position->distance(point) > radius_) continue;
+
+        robot->takeDamage(Damage);
+        if (!robot->isAlive()) {
+            earnedExp += 50 * robot->getRank();
+        }
+    }
+    user.addExp(earnedExp);
+    return true;
+}
+
+void AreaAttack::upgrade() {
+    ++radius_;
+}

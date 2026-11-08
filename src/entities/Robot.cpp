@@ -1,5 +1,6 @@
 #include "Robot.h"
 #include <algorithm>
+#include <utility>
 
 Robot::Robot(bool isPlayer, int maxHp, int attack, int maxEnergy, int speed, int viewRadius)
     : isPlayer_(isPlayer),
@@ -59,6 +60,26 @@ bool Robot::interact(Robot& target) {
         target.heal(15 + rank_ * 5);
     }
     return true;
+}
+
+bool Robot::addAbility(std::unique_ptr<IAbility> ability) {
+    if (!ability) return false;
+    abilities_.push_back(std::move(ability));
+    return true;
+}
+
+std::size_t Robot::getAbilityCount() const {
+    return abilities_.size();
+}
+
+const IAbility* Robot::getAbility(std::size_t index) const {
+    if (index >= abilities_.size()) return nullptr;
+    return abilities_[index].get();
+}
+
+bool Robot::useAbility(std::size_t index, Field& field, const Point& target) {
+    if (!isAlive() || index >= abilities_.size()) return false;
+    return abilities_[index]->use(*this, field, target);
 }
 
 void Robot::levelUp() {

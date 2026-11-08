@@ -71,6 +71,21 @@ void GameManager::processPlayerTurn() {
         }
         auto position = field_->getRobotPosition(player_);
         if (!position.has_value()) return;
+        if (input == '1' || input == VK_NUMPAD1) {
+            const IAbility* ability = player_->getAbility(0);
+            if (!ability) {
+                message_ = "You don't have an ability in this slot";
+            } else if (player_->getEnergy() < ability->getEnergyCost()) {
+                message_ = "You don't have enough energy for this ability";
+            } else if (player_->useAbility(0, *field_, position.value())) {
+                message_ = std::string(ability->getName()) + " used";
+                checkGameState();
+                field_->cleanupDeadRobots();
+            } else {
+                message_ = "Cannot use this ability";
+            }
+            continue;
+        }
         Point target = position.value();
         if (input == 'W') --target.y;
         else if (input == 'S') ++target.y;
@@ -193,6 +208,8 @@ void GameManager::renderFrame(int movesLeft, int maxMoves) {
 bool GameManager::canPlayerAct(int movesLeft) const {
     const auto position = field_->getRobotPosition(player_);
     if (!position || !player_->isAlive()) return false;
+    const IAbility* ability = player_->getAbility(0);
+    if (ability && player_->getEnergy() >= ability->getEnergyCost()) return true;
     constexpr Point directions[] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
     for (const Point direction : directions) {
         const Point target{position->x + direction.x, position->y + direction.y};

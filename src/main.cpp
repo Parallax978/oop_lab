@@ -4,12 +4,14 @@
 #include "Robot.h"
 #include "RobotFactory.h"
 #include "GameManager.h"
+#include "AreaAttack.h"
 
 int main() {
     try {
         auto field = std::make_unique<Field>(12, 12);
 
         auto playerUnique = std::make_unique<Robot>(true, 100, 25, 60, 3, 4);
+        playerUnique->addAbility(std::make_unique<AreaAttack>());
         Robot* playerPtr = playerUnique.get();
         field->addRobot(std::move(playerUnique), Point{1, 1});
 

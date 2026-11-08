@@ -12,6 +12,7 @@ endif()
 
 set(SOURCES
         src/main.cpp
+        src/abilities/AreaAttack.cpp
         src/core/Point.cpp
         src/core/Cell.cpp
         src/core/Field.cpp
@@ -24,6 +25,7 @@ set(SOURCES
 add_executable(RoboGame ${SOURCES})
 
 target_include_directories(RoboGame PRIVATE
+        src/abilities
         src/core
         src/entities
         src/game

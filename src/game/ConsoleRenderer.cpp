@@ -78,9 +78,30 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
         buffer += "\n";
     }
 
+    buffer += "\nAbilities:\n";
+    if (player.getAbilityCount() == 0) {
+        buffer += "  None\n";
+    } else {
+        for (std::size_t index = 0; index < player.getAbilityCount(); ++index) {
+            const IAbility* ability = player.getAbility(index);
+            if (!ability) continue;
+
+            buffer += "  " + std::to_string(index + 1) + ". " +
+                      std::string(ability->getName()) + " (" +
+                      std::to_string(ability->getEnergyCost()) + " energy)";
+            if (player.getEnergy() < ability->getEnergyCost()) {
+                buffer += " - not enough energy";
+            }
+            buffer += "\n";
+        }
+    }
+
     if (movesLeft >= 0) {
         buffer += "\nMoves left: " + std::to_string(movesLeft) + "/" + std::to_string(maxMoves);
         buffer += "\nW/A/S/D - move/interact; Space - end turn\n";
+        if (player.getAbilityCount() > 0) {
+            buffer += "1 - use first ability\n";
+        }
     }
     if (!message.empty()) buffer += "\n" + message + "\n";
     clearConsole();

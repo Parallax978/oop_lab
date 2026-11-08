@@ -1,5 +1,9 @@
 #pragma once
 #include <cmath>
+#include <cstddef>
+#include <memory>
+#include <vector>
+#include "IAbility.h"
 
 class Robot {
 public:
@@ -41,6 +45,11 @@ public:
 
     bool interact(Robot& target);
 
+    bool addAbility(std::unique_ptr<IAbility> ability);
+    std::size_t getAbilityCount() const;
+    const IAbility* getAbility(std::size_t index) const;
+    bool useAbility(std::size_t index, Field& field, const Point& target);
+
 private:
     void levelUp();
 
@@ -58,4 +67,6 @@ private:
 
     double speed_{3.0};
     double viewRadius_{4.0};
+
+    std::vector<std::unique_ptr<IAbility>> abilities_;
 };
