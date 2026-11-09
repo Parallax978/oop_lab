@@ -2,6 +2,7 @@
 
 #include "Field.h"
 #include "Robot.h"
+#include "Burning.h"
 
 std::string_view RangedAttack::getName() const {
     return "Ranged attack";
@@ -33,6 +34,8 @@ bool RangedAttack::use(Robot& user, Field& field, const Point& target) {
     victim->takeDamage(damage_);
     if (!victim->isAlive()) {
         user.addExp(50 * victim->getRank());
+    } else {
+        victim->addStatus(std::make_unique<Burning>());
     }
     return true;
 }

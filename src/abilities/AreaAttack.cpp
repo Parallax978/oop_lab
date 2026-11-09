@@ -2,6 +2,7 @@
 
 #include "Field.h"
 #include "Robot.h"
+#include "Overload.h"
 
 std::string_view AreaAttack::getName() const {
     return "Area attack";
@@ -34,6 +35,8 @@ bool AreaAttack::use(Robot& user, Field& field, const Point&) {
         robot->takeDamage(Damage);
         if (!robot->isAlive()) {
             earnedExp += 50 * robot->getRank();
+        } else {
+            robot->addStatus(std::make_unique<Overload>());
         }
     }
     user.addExp(earnedExp);
