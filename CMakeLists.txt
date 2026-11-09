@@ -25,6 +25,7 @@ set(SOURCES
         src/core/Field.cpp
         src/entities/Robot.cpp
         src/entities/RobotFactory.cpp
+        src/inventory/IInventory.h
         src/game/ConsoleRenderer.cpp
         src/game/GameManager.cpp
 )
@@ -32,6 +33,7 @@ set(SOURCES
 add_executable(RoboGame ${SOURCES})
 
 target_include_directories(RoboGame PRIVATE
+        src/inventory
         src/statuses
         src/abilities
         src/core
