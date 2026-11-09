@@ -85,7 +85,7 @@ void ConsoleRenderer::renderRankUpMenu(
 
 void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNumber,
                              int movesLeft, int maxMoves, const std::string& message,
-                             std::optional<Point> selectedTarget) const {
+                             std::optional<Point> selectedTarget, bool showStatusCells) const {
     auto playerPosOpt = field.getRobotPosition(&player);
 
     std::string buffer;
@@ -134,7 +134,7 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
                 buffer += " F ";
             } else if (!cell.isWalkable()) {
                 buffer += " # ";
-            } else if (cell.getStatusCount() > 0) {
+            } else if (showStatusCells && cell.getStatusCount() > 0) {
                 buffer += " ! ";
             } else if (cell.getMoveCost() > 1) {
                 buffer += " ~ ";
@@ -153,10 +153,12 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
         buffer += "\n";
     }
 
-    buffer += "\n! - one-use status cell; ~ - difficult terrain\n";
+    buffer += showStatusCells
+        ? "\nQ - hide status cells; ! - one-use status cell; ~ - difficult terrain\n"
+        : "\nQ - show status cells; status cells hidden; ~ - difficult terrain\n";
     if (playerPosOpt) {
         buffer += "Current cell effects: " +
-                  describeStatuses(field.getCell(*playerPosOpt)) + "\n";
+                  (showStatusCells ? describeStatuses(field.getCell(*playerPosOpt)) : "Hidden") + "\n";
         for (const auto& [position, robot] : field.getRobots()) {
             if (robot->isPlayer() || !robot->isAlive() || robot->getStatusCount() == 0 ||
                 playerPosOpt->distance(position) > player.getViewRadius()) continue;
@@ -169,7 +171,8 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
         const bool visible = playerPosOpt &&
             playerPosOpt->distance(*selectedTarget) <= player.getViewRadius();
         buffer += "Selected cell effects: " +
-                  (visible || cell.isDiscovered() ? describeStatuses(cell) : "Unknown") + "\n";
+                  (!showStatusCells ? std::string("Hidden") :
+                   visible || cell.isDiscovered() ? describeStatuses(cell) : "Unknown") + "\n";
     }
 
     buffer += "\nAbilities:\n";

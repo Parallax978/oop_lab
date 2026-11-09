@@ -72,6 +72,10 @@ void GameManager::processPlayerTurn() {
         }
         renderFrame(movesLeft, maxMoves);
         const WORD input = readKey();
+        if (input == 'Q') {
+            showStatusCells_ = !showStatusCells_;
+            continue;
+        }
         if (input == VK_SPACE) {
             message_.clear();
             return;
@@ -161,6 +165,10 @@ std::optional<Point> GameManager::selectAbilityTarget(
         renderFrame(movesLeft, maxMoves, target);
 
         const WORD input = readKey();
+        if (input == 'Q') {
+            showStatusCells_ = !showStatusCells_;
+            continue;
+        }
         if (input == VK_ESCAPE) return std::nullopt;
         if (input == VK_RETURN) return target;
 
@@ -309,7 +317,8 @@ void GameManager::renderFrame(int movesLeft, int maxMoves, std::optional<Point> 
     if (auto position = field_->getRobotPosition(player_); position.has_value()) {
         field_->updateFogOfWar(position.value(), player_->getViewRadius());
     }
-    renderer_.render(*field_, *player_, turnNumber_, movesLeft, maxMoves, message_, selectedTarget);
+    renderer_.render(*field_, *player_, turnNumber_, movesLeft, maxMoves, message_,
+                     selectedTarget, showStatusCells_);
 }
 
 bool GameManager::canPlayerAct(int movesLeft) const {

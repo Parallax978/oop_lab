@@ -41,5 +41,6 @@ private:
     GameState state_{GameState::InProgress};
     int turnNumber_{1};
     int lastRewardedRank_;
+    bool showStatusCells_{true};
     std::string message_;
 };
