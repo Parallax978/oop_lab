@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 #include "IAbility.h"
+#include "IStatus.h"
 
 class Robot {
 public:
@@ -50,8 +51,15 @@ public:
     const IAbility* getAbility(std::size_t index) const;
     bool useAbility(std::size_t index, Field& field, const Point& target);
 
+    bool addStatus(std::unique_ptr<IStatus> status);
+    std::size_t getStatusCount() const;
+    const IStatus* getStatus(std::size_t index) const;
+    bool canMove() const;
+    void processStatusesOnTurnEnd();
+
 private:
     void levelUp();
+    void removeExpiredStatuses();
 
     bool isPlayer_{false};
     int hp_{100};
@@ -69,4 +77,6 @@ private:
     double viewRadius_{4.0};
 
     std::vector<std::unique_ptr<IAbility>> abilities_;
+    std::vector<std::unique_ptr<IStatus>> statuses_;
+    bool processingStatusTurn_{false};
 };

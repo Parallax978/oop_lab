@@ -1,4 +1,5 @@
 #include "ConsoleRenderer.h"
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include <utility>
@@ -9,8 +10,29 @@
 #include <windows.h>
 
 namespace {
+template <typename Owner>
+std::string describeStatuses(const Owner& owner) {
+    std::string result;
+    for (std::size_t index = 0; index < owner.getStatusCount(); ++index) {
+        const IStatus* status = owner.getStatus(index);
+        if (!status || status->isExpired()) continue;
+        if (!result.empty()) result += ", ";
+        result += status->getDescription();
+    }
+    return result.empty() ? "None" : result;
+}
+
 void clearConsole() {
     const HANDLE output = GetStdHandle(STD_OUTPUT_HANDLE);
+    DWORD originalMode;
+    if (GetConsoleMode(output, &originalMode) &&
+        SetConsoleMode(output, originalMode | ENABLE_PROCESSED_OUTPUT |
+                               ENABLE_VIRTUAL_TERMINAL_PROCESSING)) {
+        std::cout << "\x1b[2J\x1b[3J\x1b[H" << std::flush;
+        SetConsoleMode(output, originalMode);
+        return;
+    }
+
     CONSOLE_SCREEN_BUFFER_INFO info;
     if (!GetConsoleScreenBufferInfo(output, &info)) return;
 
@@ -21,6 +43,26 @@ void clearConsole() {
     FillConsoleOutputAttribute(output, info.wAttributes, size, origin, &written);
     SetConsoleCursorPosition(output, origin);
 }
+}
+
+void ConsoleRenderer::initializeConsole() const {
+    const HANDLE output = GetStdHandle(STD_OUTPUT_HANDLE);
+    CONSOLE_SCREEN_BUFFER_INFO info;
+    if (!GetConsoleScreenBufferInfo(output, &info)) return;
+
+    const SHORT currentHeight = info.srWindow.Bottom - info.srWindow.Top + 1;
+    const COORD maximumWindow = GetLargestConsoleWindowSize(output);
+    const SHORT desiredHeight = std::min<SHORT>(50, maximumWindow.Y);
+    if (desiredHeight <= currentHeight) return;
+
+    COORD bufferSize = info.dwSize;
+    bufferSize.Y = std::max<SHORT>(bufferSize.Y, info.srWindow.Top + desiredHeight);
+    if (bufferSize.Y != info.dwSize.Y &&
+        !SetConsoleScreenBufferSize(output, bufferSize)) return;
+
+    SMALL_RECT window = info.srWindow;
+    window.Bottom = window.Top + desiredHeight - 1;
+    SetConsoleWindowInfo(output, TRUE, &window);
 }
 
 void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNumber,
@@ -41,6 +83,8 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
               " | Energy: " + std::to_string(player.getEnergy()) + "/" + std::to_string(player.getMaxEnergy()) +
               " | Rank: " + std::to_string(player.getRank()) +
               " | XP: " + std::to_string(player.getExp()) + "/" + std::to_string(player.getExpToNextRank()) + "\n";
+    buffer += "Statuses: " + describeStatuses(player) + "\n";
+    if (!player.canMove() && player.isAlive()) buffer += "Movement blocked by a status\n";
     buffer += "========================================\n";
 
     for (int y = 0; y < field.getHeight(); ++y) {
@@ -72,6 +116,8 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
                 buffer += " F ";
             } else if (!cell.isWalkable()) {
                 buffer += " # ";
+            } else if (cell.getStatusCount() > 0) {
+                buffer += " ! ";
             } else if (cell.getMoveCost() > 1) {
                 buffer += " ~ ";
             } else {
@@ -87,6 +133,25 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
             }
         }
         buffer += "\n";
+    }
+
+    buffer += "\n! - status cell (applies on entry); ~ - difficult terrain\n";
+    if (playerPosOpt) {
+        buffer += "Current cell effects: " +
+                  describeStatuses(field.getCell(*playerPosOpt)) + "\n";
+        for (const auto& [position, robot] : field.getRobots()) {
+            if (robot->isPlayer() || !robot->isAlive() || robot->getStatusCount() == 0 ||
+                playerPosOpt->distance(position) > player.getViewRadius()) continue;
+            buffer += "Enemy (" + std::to_string(position.x) + ", " +
+                      std::to_string(position.y) + "): " + describeStatuses(*robot) + "\n";
+        }
+    }
+    if (selectedTarget && field.isInside(*selectedTarget)) {
+        const Cell& cell = field.getCell(*selectedTarget);
+        const bool visible = playerPosOpt &&
+            playerPosOpt->distance(*selectedTarget) <= player.getViewRadius();
+        buffer += "Selected cell effects: " +
+                  (visible || cell.isDiscovered() ? describeStatuses(cell) : "Unknown") + "\n";
     }
 
     buffer += "\nAbilities:\n";

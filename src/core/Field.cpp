@@ -74,6 +74,7 @@ bool Field::addRobot(std::unique_ptr<Robot> robot, Point pt) {
         return false;
     }
     robots_.emplace_back(pt, std::move(robot));
+    getCell(pt).applyStatuses(*robots_.back().second);
     return true;
 }
 
@@ -127,6 +128,7 @@ ActionResult Field::moveRobot(Robot* robot, Point destination, bool canMove) {
             if (terrainCost > robot->getEnergy() / moveCost) return ActionResult::NoEnergy;
             if (!robot->consumeEnergy(terrainCost * moveCost)) return ActionResult::NoEnergy;
             pos = destination;
+            getCell(destination).applyStatuses(*robot);
             return ActionResult::Moved;
         }
     }
@@ -141,6 +143,7 @@ bool Field::teleportRobot(Robot* robot, Point destination) {
     for (auto& [position, currentRobot] : robots_) {
         if (currentRobot.get() == robot) {
             position = destination;
+            getCell(destination).applyStatuses(*robot);
             return true;
         }
     }

@@ -14,8 +14,15 @@ Robot::Robot(bool isPlayer, int maxHp, int attack, int maxEnergy, int speed, int
 
 
 void Robot::takeDamage(int amount) {
-    if (amount <= 0) return;
+    if (amount <= 0 || !isAlive()) return;
+    for (const auto& status : statuses_) {
+        if (!status->isExpired()) {
+            amount = std::max(0, status->processDamage(amount));
+            if (amount == 0) break;
+        }
+    }
     hp_ = std::max(0, hp_ - amount);
+    removeExpiredStatuses();
 }
 
 void Robot::heal(int amount) {
@@ -79,7 +86,60 @@ const IAbility* Robot::getAbility(std::size_t index) const {
 
 bool Robot::useAbility(std::size_t index, Field& field, const Point& target) {
     if (!isAlive() || index >= abilities_.size()) return false;
+    bool allowed = true;
+    for (const auto& status : statuses_) {
+        if (!status->isExpired() && !status->onAbilityAttempt()) allowed = false;
+    }
+    removeExpiredStatuses();
+    if (!allowed) return false;
     return abilities_[index]->use(*this, field, target);
+}
+
+bool Robot::addStatus(std::unique_ptr<IStatus> status) {
+    if (!isAlive() || !status || status->isExpired()) return false;
+
+    removeExpiredStatuses();
+    for (const auto& current : statuses_) {
+        if (!current->isExpired() && current->merge(*status)) return true;
+    }
+    statuses_.push_back(std::move(status));
+    return true;
+}
+
+std::size_t Robot::getStatusCount() const {
+    return statuses_.size();
+}
+
+const IStatus* Robot::getStatus(std::size_t index) const {
+    if (index >= statuses_.size()) return nullptr;
+    return statuses_[index].get();
+}
+
+bool Robot::canMove() const {
+    if (!isAlive()) return false;
+    for (const auto& status : statuses_) {
+        if (!status->isExpired() && !status->canMove()) return false;
+    }
+    return true;
+}
+
+void Robot::processStatusesOnTurnEnd() {
+    if (!isAlive()) return;
+
+    processingStatusTurn_ = true;
+    for (const auto& status : statuses_) {
+        if (!status->isExpired()) status->onTurnEnd(*this);
+        if (!isAlive()) break;
+    }
+    processingStatusTurn_ = false;
+    removeExpiredStatuses();
+}
+
+void Robot::removeExpiredStatuses() {
+    if (processingStatusTurn_) return;
+    std::erase_if(statuses_, [](const auto& status) {
+        return status->isExpired();
+    });
 }
 
 void Robot::levelUp() {

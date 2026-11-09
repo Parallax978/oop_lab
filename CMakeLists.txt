@@ -16,6 +16,7 @@ set(SOURCES
         src/abilities/RangedAttack.cpp
         src/abilities/Healing.cpp
         src/abilities/Teleportation.cpp
+        src/statuses/Slowness.cpp
         src/core/Point.cpp
         src/core/Cell.cpp
         src/core/Field.cpp
@@ -28,6 +29,7 @@ set(SOURCES
 add_executable(RoboGame ${SOURCES})
 
 target_include_directories(RoboGame PRIVATE
+        src/statuses
         src/abilities
         src/core
         src/entities

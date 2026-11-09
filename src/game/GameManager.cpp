@@ -31,6 +31,7 @@ GameState GameManager::getState() const {
 }
 
 void GameManager::run() {
+    renderer_.initializeConsole();
     while (state_ == GameState::InProgress) {
         checkGameState();
         if (state_ != GameState::InProgress) break;
@@ -85,7 +86,8 @@ void GameManager::processPlayerTurn() {
         else if (input == 'D') ++target.x;
         else continue;
 
-        const ActionResult result = field_->moveRobot(player_, target, movesLeft > 0);
+        const ActionResult result = field_->moveRobot(
+            player_, target, movesLeft > 0 && player_->canMove());
         switch (result) {
         case ActionResult::Moved:
             --movesLeft;
@@ -103,7 +105,9 @@ void GameManager::processPlayerTurn() {
             message_ = "You don't have enough energy for this action";
             break;
         case ActionResult::NoMoves:
-            message_ = "You have no moves left";
+            message_ = player_->canMove()
+                ? "You have no moves left"
+                : "An active status prevents you from moving";
             break;
         }
     }
@@ -183,7 +187,8 @@ void GameManager::processEnemiesTurn() {
                 else if (playerPos.y > enemyPos.y) ++step.y;
                 else if (playerPos.y < enemyPos.y) --step.y;
 
-                const ActionResult result = field_->moveRobot(robot.get(), step, movesLeft > 0);
+                const ActionResult result = field_->moveRobot(
+                    robot.get(), step, movesLeft > 0 && robot->canMove());
                 if (result == ActionResult::Moved) {
                     --movesLeft;
                     message_ = "Enemy turn";
@@ -224,6 +229,7 @@ void GameManager::processFactories() {
 
 void GameManager::endTurn() {
     for (const auto& [pos, robot] : field_->getRobots()) {
+        robot->processStatusesOnTurnEnd();
         if (robot->isAlive()) {
             robot->restoreEnergy(10);
         }
@@ -268,7 +274,7 @@ bool GameManager::canPlayerAct(int movesLeft) const {
         if (!field_->isWalkable(target)) continue;
         if (field_->getRobotAt(target)) {
             if (player_->getEnergy() >= Robot::InteractionEnergyCost) return true;
-        } else if (movesLeft > 0 && field_->getCell(target).getMoveCost() <=
+        } else if (movesLeft > 0 && player_->canMove() && field_->getCell(target).getMoveCost() <=
                    player_->getEnergy() / player_->getMoveEnergyCost()) {
             return true;
         }

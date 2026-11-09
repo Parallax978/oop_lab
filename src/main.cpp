@@ -8,6 +8,7 @@
 #include "RangedAttack.h"
 #include "Healing.h"
 #include "Teleportation.h"
+#include "Slowness.h"
 
 int main() {
     try {
@@ -31,6 +32,8 @@ int main() {
         field->getCell(Point{0, 3}).setMoveCost(2);
         field->getCell(Point{1, 3}).setMoveCost(2);
         field->getCell(Point{2, 3}).setMoveCost(2);
+
+        field->getCell(Point{2, 1}).addStatus(std::make_unique<Slowness>(2));
 
         GameManager game(std::move(field), playerPtr);
         game.run();
