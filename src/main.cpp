@@ -9,6 +9,9 @@
 #include "Healing.h"
 #include "Teleportation.h"
 #include "Slowness.h"
+#include "Overload.h"
+#include "Burning.h"
+#include "Shield.h"
 
 int main() {
     try {
@@ -34,6 +37,9 @@ int main() {
         field->getCell(Point{2, 3}).setMoveCost(2);
 
         field->getCell(Point{2, 1}).addStatus(std::make_unique<Slowness>(2));
+        field->getCell(Point{0, 1}).addStatus(std::make_unique<Overload>(2));
+        field->getCell(Point{8, 0}).addStatus(std::make_unique<Burning>(3, 10));
+        field->getCell(Point{1, 2}).addStatus(std::make_unique<Shield>(30));
 
         GameManager game(std::move(field), playerPtr);
         game.run();

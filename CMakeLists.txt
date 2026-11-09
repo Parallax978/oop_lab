@@ -17,6 +17,9 @@ set(SOURCES
         src/abilities/Healing.cpp
         src/abilities/Teleportation.cpp
         src/statuses/Slowness.cpp
+        src/statuses/Overload.cpp
+        src/statuses/Burning.cpp
+        src/statuses/Shield.cpp
         src/core/Point.cpp
         src/core/Cell.cpp
         src/core/Field.cpp
