@@ -66,8 +66,8 @@ const IStatus* Cell::getStatus(std::size_t index) const {
     return statuses_[index].get();
 }
 
-void Cell::applyStatuses(Robot& robot) const {
-    for (const auto& status : statuses_) {
-        robot.addStatus(status->clone());
-    }
+void Cell::applyStatuses(Robot& robot) {
+    std::erase_if(statuses_, [&robot](const auto& status) {
+        return robot.addStatus(status->clone());
+    });
 }

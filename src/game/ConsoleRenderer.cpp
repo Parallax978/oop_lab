@@ -135,7 +135,7 @@ void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNu
         buffer += "\n";
     }
 
-    buffer += "\n! - status cell (applies on entry); ~ - difficult terrain\n";
+    buffer += "\n! - one-use status cell; ~ - difficult terrain\n";
     if (playerPosOpt) {
         buffer += "Current cell effects: " +
                   describeStatuses(field.getCell(*playerPosOpt)) + "\n";

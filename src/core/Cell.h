@@ -25,7 +25,7 @@ public:
     bool addStatus(std::unique_ptr<IStatus> status);
     std::size_t getStatusCount() const;
     const IStatus* getStatus(std::size_t index) const;
-    void applyStatuses(Robot& robot) const;
+    void applyStatuses(Robot& robot);
 
 private:
     bool isWalkable_{true};
