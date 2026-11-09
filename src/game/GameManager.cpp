@@ -1,6 +1,12 @@
 #include "GameManager.h"
+#include <algorithm>
 #include <iostream>
 #include <stdexcept>
+#include <typeinfo>
+#include "AreaAttack.h"
+#include "RangedAttack.h"
+#include "Healing.h"
+#include "Teleportation.h"
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
@@ -24,7 +30,7 @@ WORD readKey() {
 }
 
 GameManager::GameManager(std::unique_ptr<Field> field, Robot* player)
-    : field_(std::move(field)), player_(player) {}
+    : field_(std::move(field)), player_(player), lastRewardedRank_(player->getRank()) {}
 
 GameState GameManager::getState() const {
     return state_;
@@ -254,7 +260,52 @@ void GameManager::checkGameState() {
     state_ = GameState::PlayerWon;
 }
 
+void GameManager::processRankUpChoices() {
+    while (player_->isAlive() && lastRewardedRank_ < player_->getRank()) {
+        std::vector<std::unique_ptr<IAbility>> newAbilities;
+        newAbilities.push_back(std::make_unique<AreaAttack>());
+        newAbilities.push_back(std::make_unique<RangedAttack>());
+        newAbilities.push_back(std::make_unique<Healing>());
+        newAbilities.push_back(std::make_unique<Teleportation>());
+        std::erase_if(newAbilities, [this](const auto& candidate) {
+            for (std::size_t index = 0; index < player_->getAbilityCount(); ++index) {
+                if (typeid(*player_->getAbility(index)) == typeid(*candidate)) return true;
+            }
+            return false;
+        });
+
+        const std::size_t ownedCount = player_->getAbilityCount();
+        const std::size_t choiceCount = ownedCount + newAbilities.size();
+        FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE));
+        renderer_.renderRankUpMenu(*player_, lastRewardedRank_ + 1, newAbilities);
+
+        while (true) {
+            const WORD input = readKey();
+            std::size_t choice;
+            if (input >= '1' && input <= '9') choice = input - '1';
+            else if (input >= VK_NUMPAD1 && input <= VK_NUMPAD9) choice = input - VK_NUMPAD1;
+            else continue;
+            if (choice >= choiceCount) continue;
+
+            if (choice < ownedCount) {
+                const std::string name(player_->getAbility(choice)->getName());
+                if (!player_->upgradeAbility(choice)) continue;
+                message_ = name + " upgraded";
+            } else {
+                auto& ability = newAbilities[choice - ownedCount];
+                const std::string name(ability->getName());
+                if (!player_->addAbility(std::move(ability))) continue;
+                message_ = name + " learned (slot " +
+                           std::to_string(player_->getAbilityCount()) + ")";
+            }
+            ++lastRewardedRank_;
+            break;
+        }
+    }
+}
+
 void GameManager::renderFrame(int movesLeft, int maxMoves, std::optional<Point> selectedTarget) {
+    processRankUpChoices();
     if (auto position = field_->getRobotPosition(player_); position.has_value()) {
         field_->updateFogOfWar(position.value(), player_->getViewRadius());
     }

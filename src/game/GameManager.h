@@ -30,6 +30,7 @@ private:
     void processFactories();
     void endTurn();
     void checkGameState();
+    void processRankUpChoices();
     void renderFrame(int movesLeft = -1, int maxMoves = 0,
                      std::optional<Point> selectedTarget = std::nullopt);
     bool canPlayerAct(int movesLeft) const;
@@ -39,5 +40,6 @@ private:
     ConsoleRenderer renderer_;
     GameState state_{GameState::InProgress};
     int turnNumber_{1};
+    int lastRewardedRank_;
     std::string message_;
 };

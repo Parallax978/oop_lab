@@ -65,6 +65,24 @@ void ConsoleRenderer::initializeConsole() const {
     SetConsoleWindowInfo(output, TRUE, &window);
 }
 
+void ConsoleRenderer::renderRankUpMenu(
+    const Robot& player, int rank,
+    const std::vector<std::unique_ptr<IAbility>>& newAbilities) const {
+    clearConsole();
+    std::cout << "=== Rank " << rank << " reached! ===\n"
+              << "Choose one reward. It costs no energy.\n\n";
+    std::size_t number = 1;
+    for (std::size_t index = 0; index < player.getAbilityCount(); ++index) {
+        std::cout << number++ << ". Upgrade " << player.getAbility(index)->getName() << '\n';
+    }
+    for (const auto& ability : newAbilities) {
+        std::cout << number++ << ". Learn " << ability->getName()
+                  << " (" << ability->getEnergyCost() << " energy, range "
+                  << ability->getRange() << ")\n";
+    }
+    std::cout << "\nPress the number of your choice (no Enter needed)." << std::flush;
+}
+
 void ConsoleRenderer::render(const Field& field, const Robot& player, int turnNumber,
                              int movesLeft, int maxMoves, const std::string& message,
                              std::optional<Point> selectedTarget) const {

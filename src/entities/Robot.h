@@ -49,6 +49,7 @@ public:
     bool addAbility(std::unique_ptr<IAbility> ability);
     std::size_t getAbilityCount() const;
     const IAbility* getAbility(std::size_t index) const;
+    bool upgradeAbility(std::size_t index);
     bool useAbility(std::size_t index, Field& field, const Point& target);
 
     bool addStatus(std::unique_ptr<IStatus> status);

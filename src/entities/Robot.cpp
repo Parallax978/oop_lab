@@ -84,6 +84,12 @@ const IAbility* Robot::getAbility(std::size_t index) const {
     return abilities_[index].get();
 }
 
+bool Robot::upgradeAbility(std::size_t index) {
+    if (!isAlive() || index >= abilities_.size()) return false;
+    abilities_[index]->upgrade();
+    return true;
+}
+
 bool Robot::useAbility(std::size_t index, Field& field, const Point& target) {
     if (!isAlive() || index >= abilities_.size()) return false;
     bool allowed = true;
