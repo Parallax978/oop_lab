@@ -1,63 +1,37 @@
 #include "GameManager.h"
+#include "SfmlGameView.h"
 #include <algorithm>
-#include <iostream>
-#include <stdexcept>
 #include <typeinfo>
 #include "AreaAttack.h"
 #include "RangedAttack.h"
 #include "Healing.h"
 #include "Teleportation.h"
-#ifndef NOMINMAX
-#define NOMINMAX
-#endif
-#include <windows.h>
 
-namespace {
-WORD readKey() {
-    const HANDLE input = GetStdHandle(STD_INPUT_HANDLE);
-    INPUT_RECORD event;
-    DWORD count;
-    while (ReadConsoleInputW(input, &event, 1, &count)) {
-        if (count == 0 || event.EventType != KEY_EVENT) continue;
-        const auto& key = event.Event.KeyEvent;
-        if (!key.bKeyDown) continue;
-        if (key.wVirtualKeyCode == VK_SHIFT || key.wVirtualKeyCode == VK_CONTROL ||
-            key.wVirtualKeyCode == VK_MENU || key.wVirtualKeyCode == VK_CAPITAL) continue;
-        return key.wVirtualKeyCode;
-    }
-    throw std::runtime_error("Cannot read keyboard input. Run the game in a Windows console.");
-}
-}
-
-GameManager::GameManager(std::unique_ptr<Field> field, Robot* player)
-    : field_(std::move(field)), player_(player), lastRewardedRank_(player->getRank()) {}
+GameManager::GameManager(std::unique_ptr<Field> field, Robot* player, SfmlGameView& view)
+    : field_(std::move(field)), player_(player), renderer_(view), lastRewardedRank_(player->getRank()) {}
 
 GameState GameManager::getState() const {
     return state_;
 }
 
 void GameManager::run() {
-    renderer_.initializeConsole();
-    while (state_ == GameState::InProgress) {
-        checkGameState();
-        if (state_ != GameState::InProgress) break;
-        processPlayerTurn();
-        if (state_ != GameState::InProgress) break;
-        processEnemiesTurn();
-        if (state_ != GameState::InProgress) break;
-        processFactories();
-        endTurn();
-    }
+    try {
+        while (state_ == GameState::InProgress) {
+            checkGameState();
+            if (state_ != GameState::InProgress) break;
+            processPlayerTurn();
+            if (state_ != GameState::InProgress) break;
+            processEnemiesTurn();
+            if (state_ != GameState::InProgress) break;
+            processFactories();
+            endTurn();
+        }
 
-    renderFrame();
-    if (state_ == GameState::PlayerWon) {
-        std::cout << "\n>>> VICTORY! All enemy robots have been destroyed! <<<\n";
-    } else {
-        std::cout << "\n>>> DEFEAT! Your robot has been destroyed! <<<\n";
-    }
-    std::cout << "\nPress Enter to exit..." << std::flush;
-    FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE));
-    while (readKey() != VK_RETURN) {
+        renderFrame();
+        renderer_.showGameResult(state_ == GameState::PlayerWon);
+        renderer_.clearInput();
+        while (renderer_.readKey() != GameInput::Enter) {}
+    } catch (const GameViewClosed&) {
     }
 }
 
@@ -71,21 +45,19 @@ void GameManager::processPlayerTurn() {
             return;
         }
         renderFrame(movesLeft, maxMoves);
-        const WORD input = readKey();
+        const int input = renderer_.readKey();
         if (input == 'Q') {
             showStatusCells_ = !showStatusCells_;
             continue;
         }
-        if (input == VK_SPACE) {
+        if (input == GameInput::Space) {
             message_.clear();
             return;
         }
         auto position = field_->getRobotPosition(player_);
         if (!position.has_value()) return;
-        if ((input >= '1' && input <= '9') ||
-            (input >= VK_NUMPAD1 && input <= VK_NUMPAD9)) {
-            const std::size_t index = input >= VK_NUMPAD1
-                ? input - VK_NUMPAD1 : input - '1';
+        if (input >= '1' && input <= '9') {
+            const std::size_t index = input - '1';
             processPlayerAbility(index, movesLeft, maxMoves);
             continue;
         }
@@ -164,13 +136,13 @@ std::optional<Point> GameManager::selectAbilityTarget(
                    std::to_string(ability.getRange());
         renderFrame(movesLeft, maxMoves, target);
 
-        const WORD input = readKey();
+        const int input = renderer_.readKey();
         if (input == 'Q') {
             showStatusCells_ = !showStatusCells_;
             continue;
         }
-        if (input == VK_ESCAPE) return std::nullopt;
-        if (input == VK_RETURN) return target;
+        if (input == GameInput::Escape) return std::nullopt;
+        if (input == GameInput::Enter) return target;
 
         Point next = target;
         if (input == 'W') --next.y;
@@ -213,7 +185,7 @@ void GameManager::processEnemiesTurn() {
                     break;
                 }
                 renderFrame();
-                Sleep(100);
+                renderer_.pause(100);
                 if (result == ActionResult::Interacted) break;
             }
             if (state_ != GameState::InProgress) return;
@@ -284,14 +256,13 @@ void GameManager::processRankUpChoices() {
 
         const std::size_t ownedCount = player_->getAbilityCount();
         const std::size_t choiceCount = ownedCount + newAbilities.size();
-        FlushConsoleInputBuffer(GetStdHandle(STD_INPUT_HANDLE));
+        renderer_.clearInput();
         renderer_.renderRankUpMenu(*player_, lastRewardedRank_ + 1, newAbilities);
 
         while (true) {
-            const WORD input = readKey();
+            const int input = renderer_.readKey();
             std::size_t choice;
             if (input >= '1' && input <= '9') choice = input - '1';
-            else if (input >= VK_NUMPAD1 && input <= VK_NUMPAD9) choice = input - VK_NUMPAD1;
             else continue;
             if (choice >= choiceCount) continue;
 

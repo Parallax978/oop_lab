@@ -6,7 +6,8 @@
 #include <string_view>
 #include "Field.h"
 #include "Robot.h"
-#include "ConsoleRenderer.h"
+
+class SfmlGameView;
 
 enum class GameState {
     InProgress,
@@ -16,7 +17,7 @@ enum class GameState {
 
 class GameManager {
 public:
-    GameManager(std::unique_ptr<Field> field, Robot* player);
+    GameManager(std::unique_ptr<Field> field, Robot* player, SfmlGameView& view);
     void run();
 
     GameState getState() const;
@@ -37,7 +38,7 @@ private:
 
     std::unique_ptr<Field> field_;
     Robot* player_;
-    ConsoleRenderer renderer_;
+    SfmlGameView& renderer_;
     GameState state_{GameState::InProgress};
     int turnNumber_{1};
     int lastRewardedRank_;
