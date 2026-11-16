@@ -29,6 +29,7 @@ private:
     std::optional<Point> selectAbilityTarget(Point start, const IAbility& ability,
                                              int movesLeft, int maxMoves);
     void processEnemiesTurn();
+    bool tryUseEnemyAbility(Robot& robot);
     void processFactories();
     void endTurn();
     void checkGameState();

@@ -1,5 +1,6 @@
 #include "GameManager.h"
 #include "SfmlGameView.h"
+#include "EnemyCreation.h"
 #include <algorithm>
 #include <typeinfo>
 #include "AreaAttack.h"
@@ -174,9 +175,57 @@ std::optional<Point> GameManager::selectAbilityTarget(
     }
 }
 
+bool GameManager::tryUseEnemyAbility(Robot& robot) {
+    const IAbility* ability = robot.getAbility(0);
+    const auto enemyPosition = field_->getRobotPosition(&robot);
+    const auto playerPosition = field_->getRobotPosition(player_);
+    if (!robot.isAlive() || !ability || !enemyPosition || !playerPosition ||
+        robot.getEnergy() < ability->getEnergyCost()) return false;
+
+    Point target = *enemyPosition;
+    bool teleporting = false;
+    if (dynamic_cast<const Healing*>(ability)) {
+        if (robot.getHp() == robot.getMaxHp()) return false;
+    } else if (dynamic_cast<const Teleportation*>(ability)) {
+        if (robot.getHp() > robot.getMaxHp() / 2) return false;
+        int bestDistance = enemyPosition->distance(*playerPosition);
+        std::optional<Point> destination;
+        for (int y = 0; y < field_->getHeight(); ++y) {
+            for (int x = 0; x < field_->getWidth(); ++x) {
+                const Point candidate{x, y};
+                if (enemyPosition->distance(candidate) > ability->getRange() ||
+                    !field_->isWalkable(candidate) || field_->getRobotAt(candidate)) continue;
+                const int distance = candidate.distance(*playerPosition);
+                if (distance > bestDistance) {
+                    bestDistance = distance;
+                    destination = candidate;
+                }
+            }
+        }
+        if (!destination) return false;
+        target = *destination;
+        teleporting = true;
+    } else {
+        return false;
+    }
+
+    const bool visibleBefore = enemyPosition->distance(*playerPosition) <= player_->getViewRadius();
+    if (!robot.useAbility(0, *field_, target)) return false;
+    const auto newPosition = field_->getRobotPosition(&robot);
+    const bool visibleAfter = newPosition &&
+        newPosition->distance(*playerPosition) <= player_->getViewRadius();
+    if (visibleBefore || visibleAfter) {
+        message_ = "Enemy used " + std::string(ability->getName());
+        renderFrame();
+        renderer_.pause(100);
+    }
+    return teleporting;
+}
+
 void GameManager::processEnemiesTurn() {
     for (const auto& [pos, robot] : field_->getRobots()) {
         if (!robot->isPlayer() && robot->isAlive()) {
+            const bool retreating = tryUseEnemyAbility(*robot);
             int movesLeft = robot->getSpeed();
             while (state_ == GameState::InProgress) {
                 const auto playerPosition = field_->getRobotPosition(player_);
@@ -185,10 +234,30 @@ void GameManager::processEnemiesTurn() {
                 const Point playerPos = playerPosition.value();
                 const Point enemyPos = enemyPosition.value();
                 Point step = enemyPos;
-                if (playerPos.x > enemyPos.x) ++step.x;
-                else if (playerPos.x < enemyPos.x) --step.x;
-                else if (playerPos.y > enemyPos.y) ++step.y;
-                else if (playerPos.y < enemyPos.y) --step.y;
+                if (retreating) {
+                    if (movesLeft <= 0 || !robot->canMove()) break;
+                    constexpr Point directions[] = {{0, -1}, {0, 1}, {-1, 0}, {1, 0}};
+                    std::optional<Point> bestStep;
+                    int bestDistance = enemyPos.distance(playerPos);
+                    for (const Point direction : directions) {
+                        const Point candidate{enemyPos.x + direction.x, enemyPos.y + direction.y};
+                        if (!field_->isWalkable(candidate) || field_->getRobotAt(candidate)) continue;
+                        if (field_->getCell(candidate).getMoveCost() >
+                            robot->getEnergy() / robot->getMoveEnergyCost()) continue;
+                        const int distance = candidate.distance(playerPos);
+                        if (distance > bestDistance) {
+                            bestDistance = distance;
+                            bestStep = candidate;
+                        }
+                    }
+                    if (!bestStep) break;
+                    step = *bestStep;
+                } else {
+                    if (playerPos.x > enemyPos.x) ++step.x;
+                    else if (playerPos.x < enemyPos.x) --step.x;
+                    else if (playerPos.y > enemyPos.y) ++step.y;
+                    else if (playerPos.y < enemyPos.y) --step.y;
+                }
 
                 const ActionResult result = field_->moveRobot(
                     robot.get(), step, movesLeft > 0 && robot->canMove());
@@ -220,7 +289,7 @@ void GameManager::processFactories() {
                 for (int dx = -1; dx <= 2 && !spawned; ++dx) {
                     Point spawnPt{tl.x + dx, tl.y + dy};
                     if (field_->isWalkable(spawnPt) && field_->getRobotAt(spawnPt) == nullptr) {
-                        auto enemy = std::make_unique<Robot>(false, 70, 15, 30, 2, 3);
+                        auto enemy = createEnemyRobot(15, 30);
                         field_->addRobot(std::move(enemy), spawnPt);
                         spawned = true;
                     }

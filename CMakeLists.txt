@@ -32,6 +32,7 @@ set(CORE_SOURCES
         src/inventory/EnergyBattery.cpp
         src/inventory/AttackBooster.cpp
         src/game/StartingField.cpp
+        src/game/EnemyCreation.cpp
 )
 
 add_library(RoboGameCore STATIC ${CORE_SOURCES})

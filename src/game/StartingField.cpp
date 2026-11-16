@@ -1,4 +1,5 @@
 #include "StartingField.h"
+#include "EnemyCreation.h"
 
 #include <utility>
 #include "Slowness.h"
@@ -15,7 +16,7 @@ StartingField createStartingField() {
     auto player = std::make_unique<Robot>(true, 100, 25, 60, 3, 4);
     Robot* playerPtr = player.get();
     field->addRobot(std::move(player), {1, 1});
-    field->addRobot(std::make_unique<Robot>(false, 70, 10, 20, 2, 3), {6, 6});
+    field->addRobot(createEnemyRobot(10, 20), {6, 6});
     field->addFactory(std::make_unique<RobotFactory>(Point{8, 8}, 10));
 
     field->getCell({3, 2}).setWalkable(false);
