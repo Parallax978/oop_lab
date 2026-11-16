@@ -1,6 +1,7 @@
 #include "Robot.h"
 #include <algorithm>
 #include <utility>
+#include "Inventory.h"
 
 Robot::Robot(bool isPlayer, int maxHp, int attack, int maxEnergy, int speed, int viewRadius)
     : isPlayer_(isPlayer),
@@ -10,7 +11,17 @@ Robot::Robot(bool isPlayer, int maxHp, int attack, int maxEnergy, int speed, int
       energy_(std::max(0, maxEnergy)),
       maxEnergy_(std::max(0, maxEnergy)),
       speed_(std::max(1, speed)),
-      viewRadius_(std::max(1, viewRadius)) {}
+      viewRadius_(std::max(1, viewRadius)) {
+    if (isPlayer_) inventory_ = std::make_unique<Inventory>();
+}
+
+int Robot::getAttack() const {
+    int attack = static_cast<int>(std::round(attack_));
+    for (const auto& status : statuses_) {
+        if (!status->isExpired()) attack = status->modifyAttack(attack);
+    }
+    return std::max(0, attack);
+}
 
 
 void Robot::takeDamage(int amount) {
@@ -105,6 +116,8 @@ bool Robot::addStatus(std::unique_ptr<IStatus> status) {
     if (!isAlive() || !status || status->isExpired()) return false;
 
     removeExpiredStatuses();
+    if (!status->onApply(*this)) return false;
+    if (status->isExpired()) return true;
     for (const auto& current : statuses_) {
         if (!current->isExpired() && current->merge(*status)) return true;
     }

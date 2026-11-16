@@ -12,6 +12,8 @@ public:
 
     virtual std::string_view getName() const = 0;
     virtual std::string getDescription() const { return std::string(getName()); }
+    virtual bool onApply(Robot&) { return true; }
+    virtual int modifyAttack(int attack) const { return attack; }
 
     virtual bool canMove() const = 0;
 

@@ -54,6 +54,10 @@ void GameManager::processPlayerTurn() {
             message_.clear();
             return;
         }
+        if (input == 'I') {
+            processInventory();
+            continue;
+        }
         auto position = field_->getRobotPosition(player_);
         if (!position.has_value()) return;
         if (input >= '1' && input <= '9') {
@@ -93,6 +97,19 @@ void GameManager::processPlayerTurn() {
             break;
         }
     }
+}
+
+void GameManager::processInventory() {
+    auto* inventory = player_->getInventory();
+    if (!inventory) return;
+    renderer_.clearInput();
+    const auto selected = renderer_.selectInventoryItem(*player_);
+    if (!selected) return;
+    const IItem* item = inventory->getItem(*selected);
+    if (!item) return;
+    const std::string name(item->getName());
+    message_ = inventory->useItem(*selected, *player_)
+        ? name + " used" : "Cannot use " + name + " now. Item kept.";
 }
 
 void GameManager::processPlayerAbility(std::size_t index, int movesLeft, int maxMoves) {
@@ -295,6 +312,12 @@ void GameManager::renderFrame(int movesLeft, int maxMoves, std::optional<Point> 
 bool GameManager::canPlayerAct(int movesLeft) const {
     const auto position = field_->getRobotPosition(player_);
     if (!position || !player_->isAlive()) return false;
+    if (const auto* inventory = player_->getInventory()) {
+        for (std::size_t index = 0; index < inventory->getItemCount(); ++index) {
+            const IItem* item = inventory->getItem(index);
+            if (item && item->canUse(*player_)) return true;
+        }
+    }
     for (std::size_t index = 0; index < player_->getAbilityCount() && index < 9; ++index) {
         const IAbility* ability = player_->getAbility(index);
         if (ability && player_->getEnergy() >= ability->getEnergyCost()) return true;

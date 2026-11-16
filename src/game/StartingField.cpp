@@ -5,6 +5,10 @@
 #include "Overload.h"
 #include "Burning.h"
 #include "Shield.h"
+#include "ItemPickupStatus.h"
+#include "HealthPack.h"
+#include "EnergyBattery.h"
+#include "AttackBooster.h"
 
 StartingField createStartingField() {
     auto field = std::make_unique<Field>(12, 12);
@@ -24,6 +28,12 @@ StartingField createStartingField() {
     field->getCell({0, 1}).addStatus(std::make_unique<Overload>(2));
     field->getCell({8, 0}).addStatus(std::make_unique<Burning>(3, 10));
     field->getCell({1, 2}).addStatus(std::make_unique<Shield>(30));
+    field->getCell({0, 2}).addStatus(
+        std::make_unique<ItemPickupStatus>(std::make_unique<HealthPack>()));
+    field->getCell({2, 2}).addStatus(
+        std::make_unique<ItemPickupStatus>(std::make_unique<EnergyBattery>()));
+    field->getCell({2, 0}).addStatus(
+        std::make_unique<ItemPickupStatus>(std::make_unique<AttackBooster>()));
     field->updateFogOfWar({1, 1}, playerPtr->getViewRadius());
 
     return {std::move(field), playerPtr};

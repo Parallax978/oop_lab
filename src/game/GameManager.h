@@ -24,6 +24,7 @@ public:
 
 private:
     void processPlayerTurn();
+    void processInventory();
     void processPlayerAbility(std::size_t index, int movesLeft, int maxMoves);
     std::optional<Point> selectAbilityTarget(Point start, const IAbility& ability,
                                              int movesLeft, int maxMoves);

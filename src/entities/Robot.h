@@ -5,6 +5,7 @@
 #include <vector>
 #include "IAbility.h"
 #include "IStatus.h"
+#include "IInventory.h"
 
 class Robot {
 public:
@@ -25,7 +26,9 @@ public:
     int getEnergy() const { return energy_; };
     int getMaxEnergy() const { return static_cast<int>(std::round(maxEnergy_)); };
 
-    int getAttack() const { return static_cast<int>(std::round(attack_)); };
+    int getAttack() const;
+    IInventory* getInventory() { return inventory_.get(); }
+    const IInventory* getInventory() const { return inventory_.get(); }
 
     int getRank() const { return rank_; };
     int getExp() const { return exp_; };
@@ -78,6 +81,7 @@ private:
     double viewRadius_{4.0};
 
     std::vector<std::unique_ptr<IAbility>> abilities_;
+    std::unique_ptr<IInventory> inventory_;
     std::vector<std::unique_ptr<IStatus>> statuses_;
     bool processingStatusTurn_{false};
 };

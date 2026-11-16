@@ -1,6 +1,7 @@
 #include "SfmlGameView.h"
 
 #include <filesystem>
+#include <algorithm>
 #include <stdexcept>
 #include "AreaAttack.h"
 #include "RangedAttack.h"
@@ -70,6 +71,7 @@ std::optional<int> SfmlGameView::handleEvent(const sf::Event& event) {
         case Scan::S: return 'S';
         case Scan::D: return 'D';
         case Scan::Q: return 'Q';
+        case Scan::I: return 'I';
         default: break;
         }
         using Key = sf::Keyboard::Key;
@@ -144,6 +146,7 @@ void SfmlGameView::render(const Field& field, const Robot& player, int turnNumbe
             std::to_string(player.getEnergy()) + "/" + std::to_string(player.getMaxEnergy()) +
             "\nRank: " + std::to_string(player.getRank()) + "  XP: " +
             std::to_string(player.getExp()) + "/" + std::to_string(player.getExpToNextRank());
+        info += "\nAttack: " + std::to_string(player.getAttack());
         if (movesLeft >= 0) info += "\nMoves: " + std::to_string(movesLeft) + "/" + std::to_string(maxMoves);
         text(info, {790.f, 95.f});
         text("ABILITIES", {790.f, 225.f}, 20, sf::Color(65, 205, 180));
@@ -159,14 +162,36 @@ void SfmlGameView::render(const Field& field, const Robot& player, int turnNumbe
         std::string statuses;
         for (std::size_t i = 0; i < player.getStatusCount(); ++i) {
             if (!statuses.empty()) statuses += '\n';
-            statuses += wrap(player.getStatus(i)->getDescription(), 24);
+            statuses += wrap(player.getStatus(i)->getDescription(), 30);
         }
-        text(statuses.empty() ? "None" : statuses, {790.f, 434.f}, 17);
+        const float statusLines = 1.f + static_cast<float>(std::count(statuses.begin(), statuses.end(), '\n'));
+        unsigned statusSize = 17;
+        while (statusSize > 9 && font_.getLineSpacing(statusSize) * statusLines > 130.f) --statusSize;
+        text(statuses.empty() ? "None" : statuses, {790.f, 434.f}, statusSize);
         text(selectedTarget ? "W/A/S/D - select target\nEnter - confirm\nEsc - cancel"
-                            : "W/A/S/D - move / interact\n1-9 - ability\nSpace - end turn",
+                            : "W/A/S/D - move / interact\n1-9 - ability; I - inventory\nSpace - end turn",
              {790.f, 615.f}, 17);
         text(showStatusCells ? "Q - hide status cells" : "Q - show status cells",
              {790.f, 690.f}, 17);
+        if (const auto* inventory = player.getInventory()) {
+            text("Inventory: " + std::to_string(inventory->getItemCount()) + "/" +
+                 std::to_string(inventory->getCapacity()), {790.f, 575.f}, 17);
+        }
+        if (showStatusCells && selectedTarget && field.isInside(*selectedTarget)) {
+            const auto position = field.getRobotPosition(&player);
+            const Cell& cell = field.getCell(*selectedTarget);
+            const bool visible = position && position->distance(*selectedTarget) <= player.getViewRadius();
+            if (visible || cell.isDiscovered()) {
+                std::string effects;
+                for (std::size_t index = 0; index < cell.getStatusCount(); ++index) {
+                    const IStatus* status = cell.getStatus(index);
+                    if (!status || status->isExpired()) continue;
+                    if (!effects.empty()) effects += "; ";
+                    effects += status->getDescription();
+                }
+                if (!effects.empty()) text(wrap(effects, 95), {40.f, 65.f}, 17);
+            }
+        }
         text(wrap(message, 100), {40.f, 718.f}, 17, sf::Color(245, 200, 110));
         present();
     };
@@ -219,5 +244,27 @@ std::unique_ptr<IAbility> SfmlGameView::selectStartingAbility(int energy) {
         if (key < '1' || key > '4') continue;
         const auto index = static_cast<std::size_t>(key - '1');
         if (abilities[index]->getEnergyCost() <= energy) return std::move(abilities[index]);
+    }
+}
+
+std::optional<std::size_t> SfmlGameView::selectInventoryItem(const Robot& player) {
+    const auto* inventory = player.getInventory();
+    if (!inventory) return std::nullopt;
+    std::vector<std::string> options;
+    for (std::size_t index = 0; index < inventory->getItemCount(); ++index) {
+        const IItem* item = inventory->getItem(index);
+        options.push_back(std::to_string(index + 1) + ". " + std::string(item->getName()) +
+            " - " + item->getDescription() + (item->canUse(player) ? "" : " (unavailable)"));
+    }
+    if (options.empty()) options.push_back("Empty");
+    menu("Inventory " + std::to_string(inventory->getItemCount()) + "/" +
+         std::to_string(inventory->getCapacity()), std::move(options),
+         "1-6 - use item | I / Esc - back. Using an item does not end your turn.");
+    while (true) {
+        const int key = readKey();
+        if (key == 'I' || key == GameInput::Escape) return std::nullopt;
+        if (key < '1' || key > '6') continue;
+        const auto index = static_cast<std::size_t>(key - '1');
+        if (index < inventory->getItemCount()) return index;
     }
 }

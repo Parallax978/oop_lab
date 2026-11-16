@@ -18,6 +18,7 @@ sf::Color statusColor(std::string_view name) {
     if (name == "Overload") return {175, 115, 235};
     if (name == "Burning") return {250, 130, 65};
     if (name == "Shield") return {85, 165, 245};
+    if (name == "Item pickup") return {100, 225, 110};
     return {235, 130, 195};
 }
 

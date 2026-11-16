@@ -19,12 +19,18 @@ set(CORE_SOURCES
         src/statuses/Overload.cpp
         src/statuses/Burning.cpp
         src/statuses/Shield.cpp
+        src/statuses/AttackBoost.cpp
+        src/statuses/ItemPickupStatus.cpp
         src/core/Point.cpp
         src/core/Cell.cpp
         src/core/Field.cpp
         src/entities/Robot.cpp
         src/entities/RobotFactory.cpp
         src/inventory/IInventory.h
+        src/inventory/Inventory.cpp
+        src/inventory/HealthPack.cpp
+        src/inventory/EnergyBattery.cpp
+        src/inventory/AttackBooster.cpp
         src/game/StartingField.cpp
 )
 

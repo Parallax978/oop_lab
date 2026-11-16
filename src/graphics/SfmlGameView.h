@@ -29,6 +29,7 @@ public:
         int movesLeft, int maxMoves, const std::string& message,
         std::optional<Point> selectedTarget, bool showStatusCells);
     std::unique_ptr<IAbility> selectStartingAbility(int energy);
+    std::optional<std::size_t> selectInventoryItem(const Robot& player);
 
 private:
     std::optional<int> handleEvent(const sf::Event& event);
