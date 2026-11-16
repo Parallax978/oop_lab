@@ -1,7 +1,10 @@
 #include "StartingField.h"
 #include "EnemyCreation.h"
 
+#include <algorithm>
+#include <random>
 #include <utility>
+#include <vector>
 #include "Slowness.h"
 #include "Overload.h"
 #include "Burning.h"
@@ -25,16 +28,47 @@ StartingField createStartingField() {
     field->getCell({1, 3}).setMoveCost(2);
     field->getCell({2, 3}).setMoveCost(2);
 
-    field->getCell({2, 1}).addStatus(std::make_unique<Slowness>(2));
-    field->getCell({0, 1}).addStatus(std::make_unique<Overload>(2));
-    field->getCell({8, 0}).addStatus(std::make_unique<Burning>(3, 10));
-    field->getCell({1, 2}).addStatus(std::make_unique<Shield>(30));
     field->getCell({0, 2}).addStatus(
         std::make_unique<ItemPickupStatus>(std::make_unique<HealthPack>()));
     field->getCell({2, 2}).addStatus(
         std::make_unique<ItemPickupStatus>(std::make_unique<EnergyBattery>()));
     field->getCell({2, 0}).addStatus(
         std::make_unique<ItemPickupStatus>(std::make_unique<AttackBooster>()));
+
+    std::vector<Point> availableCells;
+    for (int y = 0; y < field->getHeight(); ++y) {
+        for (int x = 0; x < field->getWidth(); ++x) {
+            const Point position{x, y};
+            if (field->isWalkable(position) && !field->getRobotAt(position) &&
+                field->getCell(position).getStatusCount() == 0) {
+                availableCells.push_back(position);
+            }
+        }
+    }
+
+    static std::mt19937 generator(std::random_device{}());
+    std::shuffle(availableCells.begin(), availableCells.end(), generator);
+    std::uniform_int_distribution<int> statusChoice(0, 3);
+    constexpr std::size_t statusCount = 12;
+    const std::size_t cellsToFill = std::min(statusCount, availableCells.size());
+    for (std::size_t index = 0; index < cellsToFill; ++index) {
+        Cell& cell = field->getCell(availableCells[index]);
+        switch (statusChoice(generator)) {
+        case 0:
+            cell.addStatus(std::make_unique<Slowness>(2));
+            break;
+        case 1:
+            cell.addStatus(std::make_unique<Overload>(2));
+            break;
+        case 2:
+            cell.addStatus(std::make_unique<Burning>(3, 10));
+            break;
+        case 3:
+            cell.addStatus(std::make_unique<Shield>(30));
+            break;
+        }
+    }
+
     field->updateFogOfWar({1, 1}, playerPtr->getViewRadius());
 
     return {std::move(field), playerPtr};
